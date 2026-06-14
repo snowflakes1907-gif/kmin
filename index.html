@@ -48,6 +48,8 @@
     .cn-lbl{font-size:10px;color:rgba(134,237,255,.35)}
     .card-link{display:inline-flex;align-items:center;gap:4px;font-size:12px;text-decoration:none;padding:5px 12px;border-radius:8px;border:1px solid rgba(134,237,255,.22);color:#86EDFF;transition:background .12s,border-color .12s}
     .card-link:hover{background:rgba(134,237,255,.08);border-color:rgba(134,237,255,.4)}
+    .card-prefs{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+    .pref-tag{font-size:10px;padding:3px 8px;border-radius:20px;border:1px solid;opacity:.8;letter-spacing:-.2px;white-space:nowrap}
     .card-upcoming{font-size:11px;color:rgba(134,237,255,.4);border:1px solid rgba(134,237,255,.12);padding:5px 12px;border-radius:8px;display:inline-block}
 
     .hint{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(134,237,255,.22);letter-spacing:.5px;pointer-events:none;z-index:50;transition:opacity .8s;white-space:nowrap}
@@ -106,6 +108,7 @@
     <div class="card-when" id="c-when"></div>
     <div class="card-divider"></div>
     <div class="card-nums" id="c-nums"></div>
+    <div class="card-prefs" id="c-prefs"></div>
     <div id="c-action"></div>
   </div>
 
@@ -143,53 +146,53 @@
       {
         id:'pp',label:'PP',isMe:true,color:'#86EDFF',
         trips:[
-          {id:1, name:"뉴욕 여행",  country:"미국",      year:2024,month:"7월", days:8, places:15,status:"completed",x:1820,y:1110,r:6.5},
-          {id:2, name:"파리 여행",  country:"프랑스",    year:2025,month:"5월", days:7, places:12,status:"completed",x:1740,y:1340,r:5.5},
-          {id:3, name:"발리 여행",  country:"인도네시아",year:2025,month:"1월", days:10,places:8, status:"completed",x:1940,y:1490,r:4.5},
-          {id:4, name:"방콕 여행",  country:"태국",      year:2024,month:"11월",days:6, places:11,status:"completed",x:2200,y:1430,r:5},
-          {id:5, name:"도쿄 여행",  country:"일본",      year:2026,month:"8월", days:5, places:9, status:"completed",x:2290,y:1140,r:6,file:"tokyo.html"},
-          {id:6, name:"교토 여행",  country:"일본",      year:2026,month:"12월",days:4, places:6, status:"upcoming", x:2090,y:1000,r:3.5},
+          {id:1, name:"뉴욕 여행",  country:"미국",      year:2024,month:"7월", days:8, places:15,status:"completed",x:1820,y:1110,r:6.5,prefs:["도시 감성","맛집 탐방","인생샷","완벽 계획"]},
+          {id:2, name:"파리 여행",  country:"프랑스",    year:2025,month:"5월", days:7, places:12,status:"completed",x:1740,y:1340,r:5.5,prefs:["도시 감성","감성 골목","인생샷","뷰맛집 숙소"]},
+          {id:3, name:"발리 여행",  country:"인도네시아",year:2025,month:"1월", days:10,places:8, status:"completed",x:1940,y:1490,r:4.5,prefs:["자연 치유","완전 휴식","즉흥 여행","인생샷"]},
+          {id:4, name:"방콕 여행",  country:"태국",      year:2024,month:"11월",days:6, places:11,status:"completed",x:2200,y:1430,r:5,  prefs:["맛집 탐방","도시 감성","즉흥 여행","액티비티"]},
+          {id:5, name:"도쿄 여행",  country:"일본",      year:2026,month:"8월", days:5, places:9, status:"completed",x:2290,y:1140,r:6,file:"tokyo.html",prefs:["도시 감성","맛집 탐방","완벽 계획","인생샷"]},
+          {id:6, name:"교토 여행",  country:"일본",      year:2026,month:"12월",days:4, places:6, status:"upcoming", x:2090,y:1000,r:3.5,prefs:["감성 골목","자연 치유","완벽 계획"]},
         ],
         connections:[[1,2],[2,3],[3,4],[4,5],[5,6],[6,1]],
       },
       {
         id:'alice',label:'@alice',isMe:false,color:'#A8E6A3',
         trips:[
-          {id:10,name:"런던",      country:"영국",    year:2024,month:"9월",days:5,places:10,status:"completed",x:660,y:540,r:5},
-          {id:11,name:"에든버러",  country:"영국",    year:2024,month:"9월",days:3,places:7, status:"completed",x:740,y:486,r:4},
-          {id:12,name:"암스테르담",country:"네덜란드",year:2025,month:"3월",days:4,places:8, status:"completed",x:800,y:592,r:4.5},
-          {id:13,name:"파리",      country:"프랑스",  year:2025,month:"6월",days:6,places:11,status:"completed",x:714,y:682,r:5.5},
+          {id:10,name:"런던",      country:"영국",    year:2024,month:"9월",days:5,places:10,status:"completed",x:660,y:540,r:5,  prefs:["도시 감성","인생샷","완벽 계획"]},
+          {id:11,name:"에든버러",  country:"영국",    year:2024,month:"9월",days:3,places:7, status:"completed",x:740,y:486,r:4,  prefs:["감성 골목","자연 치유","인생샷"]},
+          {id:12,name:"암스테르담",country:"네덜란드",year:2025,month:"3월",days:4,places:8, status:"completed",x:800,y:592,r:4.5,prefs:["감성 골목","맛집 탐방","즉흥 여행"]},
+          {id:13,name:"파리",      country:"프랑스",  year:2025,month:"6월",days:6,places:11,status:"completed",x:714,y:682,r:5.5,prefs:["도시 감성","인생샷","뷰맛집 숙소","완벽 계획"]},
         ],
         connections:[[10,11],[11,12],[12,13],[13,10]],
       },
       {
         id:'yuki',label:'@yuki',isMe:false,color:'#FFCF86',
         trips:[
-          {id:20,name:"서울",    country:"한국",    year:2023,month:"10월",days:5,places:12,status:"completed",x:3198,y:428,r:5},
-          {id:21,name:"타이베이",country:"대만",    year:2024,month:"2월", days:4,places:9, status:"completed",x:3392,y:468,r:4.5},
-          {id:22,name:"오사카",  country:"일본",    year:2024,month:"4월", days:5,places:10,status:"completed",x:3418,y:572,r:4},
-          {id:23,name:"홍콩",    country:"홍콩",    year:2024,month:"8월", days:4,places:8, status:"completed",x:3276,y:592,r:4.5},
-          {id:24,name:"싱가포르",country:"싱가포르",year:2025,month:"1월", days:6,places:13,status:"completed",x:3168,y:538,r:5.5},
+          {id:20,name:"서울",    country:"한국",    year:2023,month:"10월",days:5,places:12,status:"completed",x:3198,y:428,r:5,  prefs:["맛집 탐방","도시 감성","쇼핑"]},
+          {id:21,name:"타이베이",country:"대만",    year:2024,month:"2월", days:4,places:9, status:"completed",x:3392,y:468,r:4.5,prefs:["맛집 탐방","감성 골목","즉흥 여행"]},
+          {id:22,name:"오사카",  country:"일본",    year:2024,month:"4월", days:5,places:10,status:"completed",x:3418,y:572,r:4,  prefs:["맛집 탐방","도시 감성","완벽 계획"]},
+          {id:23,name:"홍콩",    country:"홍콩",    year:2024,month:"8월", days:4,places:8, status:"completed",x:3276,y:592,r:4.5,prefs:["도시 감성","인생샷","쇼핑"]},
+          {id:24,name:"싱가포르",country:"싱가포르",year:2025,month:"1월", days:6,places:13,status:"completed",x:3168,y:538,r:5.5,prefs:["도시 감성","맛집 탐방","액티비티","뷰맛집 숙소"]},
         ],
         connections:[[20,21],[21,22],[22,23],[23,24],[24,20]],
       },
       {
         id:'marco',label:'@marco',isMe:false,color:'#F9A8D4',
         trips:[
-          {id:30,name:"로마",    country:"이탈리아",year:2024,month:"5월",days:6,places:14,status:"completed",x:698,y:1838,r:5.5},
-          {id:31,name:"아테네",  country:"그리스",  year:2024,month:"6월",days:5,places:11,status:"completed",x:832,y:1868,r:4.5},
-          {id:32,name:"이스탄불",country:"튀르키예",year:2024,month:"7월",days:4,places:9, status:"completed",x:820,y:1972,r:4},
-          {id:33,name:"두바이",  country:"UAE",     year:2025,month:"1월",days:3,places:7, status:"completed",x:674,y:1994,r:4.5},
+          {id:30,name:"로마",    country:"이탈리아",year:2024,month:"5월",days:6,places:14,status:"completed",x:698,y:1838,r:5.5,prefs:["감성 골목","인생샷","맛집 탐방"]},
+          {id:31,name:"아테네",  country:"그리스",  year:2024,month:"6월",days:5,places:11,status:"completed",x:832,y:1868,r:4.5,prefs:["감성 골목","자연 치유","인생샷"]},
+          {id:32,name:"이스탄불",country:"튀르키예",year:2024,month:"7월",days:4,places:9, status:"completed",x:820,y:1972,r:4,  prefs:["감성 골목","맛집 탐방","즉흥 여행"]},
+          {id:33,name:"두바이",  country:"UAE",     year:2025,month:"1월",days:3,places:7, status:"completed",x:674,y:1994,r:4.5,prefs:["도시 감성","뷰맛집 숙소","액티비티"]},
         ],
         connections:[[30,31],[31,32],[32,33],[33,30]],
       },
       {
         id:'sarah',label:'@sarah',isMe:false,color:'#C4B5FD',
         trips:[
-          {id:40,name:"뉴욕",    country:"미국",  year:2023,month:"12월",days:7, places:16,status:"completed",x:3096,y:1918,r:5.5},
-          {id:41,name:"시드니",  country:"호주",  year:2024,month:"3월", days:10,places:12,status:"completed",x:3342,y:1946,r:5},
-          {id:42,name:"리우",    country:"브라질",year:2024,month:"7월", days:8, places:10,status:"completed",x:3278,y:2098,r:4.5},
-          {id:43,name:"케이프타운",country:"남아공",year:2025,month:"2월",days:9,places:11,status:"completed",x:3098,y:2082,r:5},
+          {id:40,name:"뉴욕",      country:"미국",  year:2023,month:"12월",days:7, places:16,status:"completed",x:3096,y:1918,r:5.5,prefs:["도시 감성","완벽 계획","인생샷","쇼핑"]},
+          {id:41,name:"시드니",    country:"호주",  year:2024,month:"3월", days:10,places:12,status:"completed",x:3342,y:1946,r:5,  prefs:["자연 치유","액티비티","뷰맛집 숙소","인생샷"]},
+          {id:42,name:"리우",      country:"브라질",year:2024,month:"7월", days:8, places:10,status:"completed",x:3278,y:2098,r:4.5,prefs:["액티비티","즉흥 여행","인생샷"]},
+          {id:43,name:"케이프타운",country:"남아공",year:2025,month:"2월", days:9, places:11,status:"completed",x:3098,y:2082,r:5,  prefs:["자연 치유","인생샷","뷰맛집 숙소","완전 휴식"]},
         ],
         connections:[[40,41],[41,42],[42,43],[43,40]],
       },
@@ -388,6 +391,8 @@
       document.getElementById('c-when').textContent=`${trip.year}년 ${trip.month} · ${trip.days}일간`;
       document.getElementById('c-nums').innerHTML=`<div class="cn"><div class="cn-num" style="color:${con.color}">${trip.days}</div><div class="cn-lbl">일간</div></div><div class="cn"><div class="cn-num" style="color:${con.color}">${trip.places}</div><div class="cn-lbl">장소</div></div>`;
       const dot=document.getElementById('c-dot');dot.style.background=con.color;dot.style.color=con.color;
+      const prefs=document.getElementById('c-prefs');
+      prefs.innerHTML=(trip.prefs||[]).map(p=>`<span class="pref-tag" style="color:${con.color};border-color:${con.color}40;background:${con.color}12">${p}</span>`).join('');
       const action=document.getElementById('c-action');
       if(trip.file)action.innerHTML=`<a href="${trip.file}" class="card-link" style="color:${con.color};border-color:${con.color}40">기록 보기 →</a>`;
       else if(trip.status==='upcoming')action.innerHTML=`<span class="card-upcoming">계획 중</span>`;
