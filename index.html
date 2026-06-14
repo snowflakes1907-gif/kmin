@@ -3,362 +3,560 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>도쿄 여행</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <title>여행 아카이브 — PP</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body, #root { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-    body { background: #f4f1eb; }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;overflow:hidden;background:#050A12}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Segoe UI',sans-serif;cursor:grab;user-select:none}
+    body.dragging{cursor:grabbing}
+    body.add-mode{cursor:crosshair !important}
+    body.star-drag{cursor:grabbing !important}
 
-    .app { display: flex; flex-direction: column; height: 100vh; }
+    .header{position:fixed;top:0;left:0;right:0;z-index:100;padding:15px 24px;display:flex;align-items:center;gap:14px;pointer-events:none}
+    .header::after{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(to bottom,rgba(5,10,18,.85) 0%,transparent 100%)}
+    .logo{width:34px;height:34px;border-radius:8px;background:#0A2530;border:1px solid rgba(134,237,255,.22);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#86EDFF;letter-spacing:.4px;pointer-events:auto;cursor:pointer}
+    .header-title{font-size:14px;font-weight:500;color:rgba(230,253,255,.85);flex:1}
+    .header-stats{display:flex;gap:18px}
+    .hstat{font-size:12px;color:rgba(134,237,255,.45)}
+    .hstat b{color:#86EDFF;font-weight:600;margin-right:3px}
 
-    /* Header */
-    .header {
-      background: #0A2530; padding: 12px 20px;
-      display: flex; align-items: center; gap: 12px; flex-shrink: 0; z-index: 1000;
-    }
-    .logo {
-      width: 34px; height: 34px; background: #133A4A; border-radius: 7px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 600; color: #86EDFF; letter-spacing: .5px;
-    }
-    .trip-info { flex: 1; }
-    .trip-title { font-size: 15px; font-weight: 600; color: #F0FEFF; }
-    .trip-period { font-size: 12px; color: #86EDFF; margin-top: 1px; opacity: .85; }
-    .status-badge {
-      font-size: 11px; padding: 4px 11px; border-radius: 20px;
-      background: #133A4A; color: #86EDFF; font-weight: 500;
-      border: 1px solid rgba(134,237,255,.3);
-    }
+    #universe-wrap{position:fixed;inset:0;overflow:hidden}
+    #universe{position:absolute;top:0;left:0;will-change:transform;transform-origin:0 0}
+    #sky{display:block}
 
-    /* Main layout */
-    .main { display: flex; flex: 1; overflow: hidden; }
-    .map-wrap { flex: 1; position: relative; }
-    #map { width: 100%; height: 100%; }
+    @keyframes twinkle{0%,100%{opacity:var(--op,.3)}50%{opacity:calc(var(--op,.3)*.1)}}
+    @keyframes pulse{0%,100%{transform:scale(1);opacity:.22}50%{transform:scale(1.5);opacity:.06}}
 
-    /* Leaflet marker overrides */
-    .custom-marker {
-      width: 32px; height: 32px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 12px; font-weight: 600; color: white;
-      border: 2.5px solid white;
-      box-shadow: 0 2px 6px rgba(0,0,0,.25);
-      transition: transform .15s, box-shadow .15s;
-      cursor: pointer;
-    }
-    .custom-marker.active {
-      transform: scale(1.25);
-      box-shadow: 0 4px 12px rgba(0,0,0,.35);
-    }
-    .leaflet-popup-content-wrapper {
-      border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,.12);
-      border: none; padding: 0;
-    }
-    .leaflet-popup-content { margin: 0; }
-    .popup-card { padding: 12px 14px; min-width: 160px; }
-    .popup-cat {
-      font-size: 10px; font-weight: 600; letter-spacing: .5px;
-      padding: 2px 7px; border-radius: 10px; display: inline-block;
-      margin-bottom: 5px;
-    }
-    .popup-name { font-size: 14px; font-weight: 600; color: #1a1a1a; margin-bottom: 3px; }
-    .popup-time { font-size: 12px; color: #666; margin-bottom: 3px; }
-    .popup-memo { font-size: 11px; color: #888; }
-    .leaflet-popup-tip-container { display: none; }
+    .trip-card{position:fixed;z-index:200;width:214px;background:rgba(4,14,24,.97);border:1px solid rgba(134,237,255,.15);border-radius:16px;padding:17px 19px;pointer-events:auto;transition:opacity .18s ease,transform .18s ease}
+    .trip-card.hidden{opacity:0;transform:translateY(6px);pointer-events:none}
+    .trip-card.visible{opacity:1;transform:translateY(0)}
+    .card-user{display:flex;align-items:center;gap:7px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.06)}
+    .card-user-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .card-user-name{font-size:11px;font-weight:600;opacity:.9}
+    .card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px}
+    .card-country{font-size:10px;letter-spacing:.9px;text-transform:uppercase;color:rgba(200,240,255,.45);margin-bottom:3px}
+    .card-name{font-size:16px;font-weight:600;color:#F0FEFF;letter-spacing:-.4px;line-height:1.2}
+    .card-status-dot{width:6px;height:6px;border-radius:50%;margin-top:5px;flex-shrink:0;box-shadow:0 0 5px currentColor}
+    .card-when{font-size:11px;color:rgba(160,220,255,.5);margin-bottom:13px}
+    .card-divider{height:1px;background:rgba(134,237,255,.07);margin:10px 0 12px}
+    .card-nums{display:flex;margin-bottom:13px}
+    .cn{flex:1;text-align:center}
+    .cn+.cn{border-left:1px solid rgba(134,237,255,.08)}
+    .cn-num{font-size:22px;font-weight:600;line-height:1;margin-bottom:3px;letter-spacing:-1px}
+    .cn-lbl{font-size:10px;color:rgba(134,237,255,.35)}
+    .card-link{display:inline-flex;align-items:center;gap:4px;font-size:12px;text-decoration:none;padding:5px 12px;border-radius:8px;border:1px solid rgba(134,237,255,.22);color:#86EDFF;transition:background .12s,border-color .12s}
+    .card-link:hover{background:rgba(134,237,255,.08);border-color:rgba(134,237,255,.4)}
+    .card-upcoming{font-size:11px;color:rgba(134,237,255,.4);border:1px solid rgba(134,237,255,.12);padding:5px 12px;border-radius:8px;display:inline-block}
 
-    /* Route toggle */
-    .map-controls {
-      position: absolute; top: 12px; left: 12px; z-index: 999;
-      display: flex; gap: 6px;
-    }
-    .ctrl-btn {
-      background: white; border: none; border-radius: 7px;
-      padding: 6px 12px; font-size: 12px; cursor: pointer;
-      box-shadow: 0 1px 4px rgba(0,0,0,.15);
-      color: #333; font-weight: 500;
-      transition: background .12s;
-    }
-    .ctrl-btn:hover { background: #f0f0f0; }
-    .ctrl-btn.active { background: #0A2530; color: #86EDFF; }
+    .hint{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(134,237,255,.22);letter-spacing:.5px;pointer-events:none;z-index:50;transition:opacity .8s;white-space:nowrap}
+    .hint.fade{opacity:0}
+    .add-hint{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(134,237,255,.5);background:rgba(4,14,24,.85);border:1px solid rgba(134,237,255,.2);padding:6px 16px;border-radius:20px;pointer-events:none;z-index:50;opacity:0;transition:opacity .3s;white-space:nowrap}
+    .add-hint.show{opacity:1}
 
-    /* Right panel */
-    .panel {
-      width: 290px; flex-shrink: 0; background: white;
-      border-left: 1px solid #e8e4dc;
-      display: flex; flex-direction: column; overflow: hidden;
-    }
-    .stats {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-      padding: 12px; background: #D6F9FF; flex-shrink: 0;
-    }
-    .stat-card {
-      background: white; border-radius: 8px;
-      padding: 8px 10px; text-align: center;
-    }
-    .stat-num { font-size: 18px; font-weight: 600; color: #0A8BAB; }
-    .stat-label { font-size: 10px; color: #1A9BB5; margin-top: 1px; }
+    .zoom-ctrl{position:fixed;bottom:22px;right:22px;z-index:100;display:flex;flex-direction:column;gap:4px}
+    .z-btn{width:32px;height:32px;border:1px solid rgba(134,237,255,.18);background:rgba(4,14,24,.85);border-radius:8px;cursor:pointer;color:rgba(134,237,255,.7);font-size:18px;display:flex;align-items:center;justify-content:center;line-height:1;transition:background .12s,color .12s}
+    .z-btn:hover{background:rgba(134,237,255,.1);color:#86EDFF}
+    .add-btn{position:fixed;bottom:110px;right:22px;z-index:100;width:32px;height:32px;border:1px solid rgba(134,237,255,.22);background:rgba(4,14,24,.85);border-radius:8px;cursor:pointer;color:#86EDFF;font-size:20px;display:flex;align-items:center;justify-content:center;line-height:1;transition:background .12s,border-color .12s}
+    .add-btn:hover{background:rgba(134,237,255,.1);border-color:rgba(134,237,255,.4)}
+    .add-btn.active{background:rgba(134,237,255,.18);border-color:#86EDFF}
 
-    .tl-header-row {
-      padding: 12px 14px 6px;
-      font-size: 10px; font-weight: 600; color: #888;
-      letter-spacing: .6px; text-transform: uppercase; flex-shrink: 0;
-    }
-    .timeline { overflow-y: auto; flex: 1; padding: 0 10px 12px; }
-
-    .tl-item {
-      display: flex; gap: 10px; padding: 9px 8px;
-      border-radius: 9px; cursor: pointer;
-      border: 1.5px solid transparent;
-      transition: background .12s, border-color .12s;
-      align-items: flex-start; margin-bottom: 2px;
-    }
-    .tl-item:hover { background: #f0fcff; }
-    .tl-item.active { border-color: #0AABCF; background: #D6F9FF; }
-
-    .tl-left { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; padding-top: 2px; }
-    .tl-order { font-size: 9px; font-weight: 600; color: #aaa; min-height: 13px; text-align: center; }
-    .tl-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; margin-top: 2px; }
-    .tl-vline { width: 1.5px; flex: 1; background: #e8e4dc; min-height: 14px; margin-top: 3px; }
-
-    .tl-content { flex: 1; min-width: 0; }
-    .tl-name { font-size: 13px; font-weight: 600; color: #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tl-time { font-size: 11px; color: #888; margin-top: 2px; }
-    .tl-memo { font-size: 11px; color: #aaa; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    .day-label {
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px 8px 4px; margin-top: 4px;
-    }
-    .day-label-num { font-size: 10px; font-weight: 700; color: #0A8BAB; letter-spacing: .4px; }
-    .day-label-date { font-size: 10px; color: #bbb; }
-    .day-label-line { flex: 1; height: 1px; background: #e8e4dc; }
-
-    .back-btn {
-      color: rgba(134,237,255,.7); text-decoration: none; font-size: 17px;
-      padding: 4px 6px; border-radius: 6px; line-height: 1;
-      transition: background .12s, color .12s; flex-shrink: 0;
-    }
-    .back-btn:hover { background: rgba(134,237,255,.12); color: #86EDFF; }
-
-    /* Responsive */
-    @media (max-width: 640px) {
-      .main { flex-direction: column; }
-      .map-wrap { height: 55vh; flex: none; }
-      .panel { width: 100%; height: 45vh; flex: none; border-left: none; border-top: 1px solid #e8e4dc; }
-    }
+    .add-form{position:fixed;z-index:400;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(4,14,24,.98);border:1px solid rgba(134,237,255,.22);border-radius:16px;padding:22px 24px;width:250px;transition:opacity .18s;pointer-events:auto}
+    .add-form.hidden{opacity:0;pointer-events:none}
+    .add-form-title{font-size:14px;font-weight:600;color:#F0FEFF;margin-bottom:16px}
+    .add-form input{width:100%;background:rgba(134,237,255,.05);border:1px solid rgba(134,237,255,.15);border-radius:8px;padding:9px 12px;font-size:13px;color:#E0FEFF;outline:none;margin-bottom:10px;font-family:inherit}
+    .add-form input:focus{border-color:rgba(134,237,255,.4)}
+    .add-form input::placeholder{color:rgba(134,237,255,.28)}
+    .af-row{display:flex;gap:6px;margin-bottom:10px}
+    .af-row input{margin-bottom:0}
+    .af-btns{display:flex;gap:8px;margin-top:6px}
+    .af-btn{flex:1;padding:8px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid rgba(134,237,255,.2);font-family:inherit;transition:background .12s}
+    .af-btn.cancel{background:transparent;color:rgba(134,237,255,.5)}
+    .af-btn.cancel:hover{background:rgba(134,237,255,.06)}
+    .af-btn.ok{background:rgba(134,237,255,.12);color:#86EDFF;border-color:rgba(134,237,255,.35)}
+    .af-btn.ok:hover{background:rgba(134,237,255,.22)}
+    .drag-tip{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(134,237,255,.2);pointer-events:none;z-index:50;white-space:nowrap;letter-spacing:.3px}
   </style>
 </head>
 <body>
-  <div id="root"></div>
+  <div class="header">
+    <div class="logo">PP</div>
+    <div class="header-title">여행 아카이브</div>
+    <div class="header-stats">
+      <div class="hstat"><b>6</b>여행</div>
+      <div class="hstat"><b>4</b>개국</div>
+      <div class="hstat"><b>40</b>일</div>
+    </div>
+  </div>
 
-  <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
+  <div id="universe-wrap">
+    <div id="universe">
+      <svg id="sky" xmlns="http://www.w3.org/2000/svg" width="4000" height="2500"></svg>
+    </div>
+  </div>
 
-    const PLACES = [
-      // Day 1
-      { id:1,  name:"아사쿠사 센소지",   category:"관광지", lat:35.7147, lng:139.7966, date:"08.20", time:"13:00", memo:"도쿄 가장 오래된 사원, 향 연기와 전통 분위기",   order:1  },
-      { id:2,  name:"나카미세 거리",     category:"쇼핑",   lat:35.7182, lng:139.7954, date:"08.20", time:"14:30", memo:"센소지 앞 전통 기념품 상점가, 닌교야키 필수",   order:2  },
-      { id:3,  name:"우에노 공원",       category:"관광지", lat:35.7141, lng:139.7714, date:"08.20", time:"17:00", memo:"저녁 산책, 불 켜진 연못과 황금빛 하늘",         order:3  },
-      // Day 2
-      { id:4,  name:"신주쿠 교엔",       category:"관광지", lat:35.6852, lng:139.7100, date:"08.21", time:"10:00", memo:"5만 그루 수목, 프랑스식·일본식 정원 혼재",     order:4  },
-      { id:5,  name:"하라주쿠 다케시타", category:"쇼핑",   lat:35.6716, lng:139.7031, date:"08.21", time:"13:30", memo:"크레이프 골목, 독특한 팝컬처 패션 쇼핑",       order:5  },
-      { id:6,  name:"시부야 스크램블",   category:"관광지", lat:35.6595, lng:139.7004, date:"08.21", time:"18:00", memo:"1회 3000명 동시 횡단, 마그넷 옥상 뷰 포인트", order:6  },
-      { id:7,  name:"이치란 라멘",       category:"음식점", lat:35.6580, lng:139.7016, date:"08.21", time:"20:00", memo:"1인 부스 시스템 원조 돈코츠, 30분 웨이팅",    order:7  },
-      // Day 3
-      { id:8,  name:"츠키지 시장",       category:"음식점", lat:35.6654, lng:139.7707, date:"08.22", time:"09:00", memo:"참치 해체쇼 관람 후 새벽 초밥 정식",           order:8  },
-      { id:9,  name:"오다이바",          category:"관광지", lat:35.6197, lng:139.7764, date:"08.22", time:"14:00", memo:"레인보우 브릿지 뷰, 유니콘 건담 실물 스케일", order:9  },
-      { id:10, name:"롯폰기 힐즈 전망대",category:"관광지", lat:35.6604, lng:139.7290, date:"08.22", time:"19:30", memo:"도쿄 타워·스카이트리 동시 조망, 야경 최고",   order:10 },
+  <div class="trip-card hidden" id="trip-card">
+    <div class="card-user" id="c-user"></div>
+    <div class="card-top">
+      <div><div class="card-country" id="c-country"></div><div class="card-name" id="c-name"></div></div>
+      <div class="card-status-dot" id="c-dot"></div>
+    </div>
+    <div class="card-when" id="c-when"></div>
+    <div class="card-divider"></div>
+    <div class="card-nums" id="c-nums"></div>
+    <div id="c-action"></div>
+  </div>
+
+  <div class="hint" id="hint">드래그하거나 스크롤하여 다른 여행자의 기록을 탐험하세요</div>
+  <div class="add-hint" id="add-hint">빈 공간을 클릭하여 새 별을 추가하세요 · ESC로 취소</div>
+  <div class="drag-tip" id="drag-tip">내 별은 드래그로 이동할 수 있어요</div>
+
+  <div class="zoom-ctrl">
+    <button class="z-btn" id="zin">+</button>
+    <button class="z-btn" id="zout">−</button>
+  </div>
+  <button class="add-btn" id="add-btn" title="새 별 추가">+</button>
+
+  <div class="add-form hidden" id="add-form">
+    <div class="add-form-title">새 여행 추가</div>
+    <input id="af-name" placeholder="여행 이름 (예: 방콕 여행)" />
+    <div class="af-row">
+      <input id="af-country" placeholder="나라" />
+      <input id="af-year" placeholder="연도" style="width:80px" />
+    </div>
+    <div class="af-btns">
+      <button class="af-btn cancel" id="af-cancel">취소</button>
+      <button class="af-btn ok" id="af-ok">추가하기</button>
+    </div>
+  </div>
+
+  <script>
+    const NS  = 'http://www.w3.org/2000/svg';
+    const sky = document.getElementById('sky');
+    const UNI = document.getElementById('universe');
+    const W   = window.innerWidth, H = window.innerHeight;
+
+    /* ── DATA ── */
+    const CONSTELLATIONS = [
+      {
+        id:'pp',label:'PP',isMe:true,color:'#86EDFF',
+        trips:[
+          {id:1, name:"뉴욕 여행",  country:"미국",      year:2024,month:"7월", days:8, places:15,status:"completed",x:1820,y:1110,r:6.5},
+          {id:2, name:"파리 여행",  country:"프랑스",    year:2025,month:"5월", days:7, places:12,status:"completed",x:1740,y:1340,r:5.5},
+          {id:3, name:"발리 여행",  country:"인도네시아",year:2025,month:"1월", days:10,places:8, status:"completed",x:1940,y:1490,r:4.5},
+          {id:4, name:"방콕 여행",  country:"태국",      year:2024,month:"11월",days:6, places:11,status:"completed",x:2200,y:1430,r:5},
+          {id:5, name:"도쿄 여행",  country:"일본",      year:2026,month:"8월", days:5, places:9, status:"completed",x:2290,y:1140,r:6,file:"tokyo.html"},
+          {id:6, name:"교토 여행",  country:"일본",      year:2026,month:"12월",days:4, places:6, status:"upcoming", x:2090,y:1000,r:3.5},
+        ],
+        connections:[[1,2],[2,3],[3,4],[4,5],[5,6],[6,1]],
+      },
+      {
+        id:'alice',label:'@alice',isMe:false,color:'#A8E6A3',
+        trips:[
+          {id:10,name:"런던",      country:"영국",    year:2024,month:"9월",days:5,places:10,status:"completed",x:660,y:540,r:5},
+          {id:11,name:"에든버러",  country:"영국",    year:2024,month:"9월",days:3,places:7, status:"completed",x:740,y:486,r:4},
+          {id:12,name:"암스테르담",country:"네덜란드",year:2025,month:"3월",days:4,places:8, status:"completed",x:800,y:592,r:4.5},
+          {id:13,name:"파리",      country:"프랑스",  year:2025,month:"6월",days:6,places:11,status:"completed",x:714,y:682,r:5.5},
+        ],
+        connections:[[10,11],[11,12],[12,13],[13,10]],
+      },
+      {
+        id:'yuki',label:'@yuki',isMe:false,color:'#FFCF86',
+        trips:[
+          {id:20,name:"서울",    country:"한국",    year:2023,month:"10월",days:5,places:12,status:"completed",x:3198,y:428,r:5},
+          {id:21,name:"타이베이",country:"대만",    year:2024,month:"2월", days:4,places:9, status:"completed",x:3392,y:468,r:4.5},
+          {id:22,name:"오사카",  country:"일본",    year:2024,month:"4월", days:5,places:10,status:"completed",x:3418,y:572,r:4},
+          {id:23,name:"홍콩",    country:"홍콩",    year:2024,month:"8월", days:4,places:8, status:"completed",x:3276,y:592,r:4.5},
+          {id:24,name:"싱가포르",country:"싱가포르",year:2025,month:"1월", days:6,places:13,status:"completed",x:3168,y:538,r:5.5},
+        ],
+        connections:[[20,21],[21,22],[22,23],[23,24],[24,20]],
+      },
+      {
+        id:'marco',label:'@marco',isMe:false,color:'#F9A8D4',
+        trips:[
+          {id:30,name:"로마",    country:"이탈리아",year:2024,month:"5월",days:6,places:14,status:"completed",x:698,y:1838,r:5.5},
+          {id:31,name:"아테네",  country:"그리스",  year:2024,month:"6월",days:5,places:11,status:"completed",x:832,y:1868,r:4.5},
+          {id:32,name:"이스탄불",country:"튀르키예",year:2024,month:"7월",days:4,places:9, status:"completed",x:820,y:1972,r:4},
+          {id:33,name:"두바이",  country:"UAE",     year:2025,month:"1월",days:3,places:7, status:"completed",x:674,y:1994,r:4.5},
+        ],
+        connections:[[30,31],[31,32],[32,33],[33,30]],
+      },
+      {
+        id:'sarah',label:'@sarah',isMe:false,color:'#C4B5FD',
+        trips:[
+          {id:40,name:"뉴욕",    country:"미국",  year:2023,month:"12월",days:7, places:16,status:"completed",x:3096,y:1918,r:5.5},
+          {id:41,name:"시드니",  country:"호주",  year:2024,month:"3월", days:10,places:12,status:"completed",x:3342,y:1946,r:5},
+          {id:42,name:"리우",    country:"브라질",year:2024,month:"7월", days:8, places:10,status:"completed",x:3278,y:2098,r:4.5},
+          {id:43,name:"케이프타운",country:"남아공",year:2025,month:"2월",days:9,places:11,status:"completed",x:3098,y:2082,r:5},
+        ],
+        connections:[[40,41],[41,42],[42,43],[43,40]],
+      },
     ];
 
-    const CAT_COLOR = { "관광지":"#97C459", "음식점":"#F0997B", "쇼핑":"#B486FF", "숙소":"#85B7EB" };
-    const CAT_BG    = { "관광지":"#EAF3DE", "음식점":"#FAECE7", "쇼핑":"#F2E8FF", "숙소":"#E6F1FB" };
-    const CAT_TEXT  = { "관광지":"#3B6D11", "음식점":"#993C1D", "쇼핑":"#6B21A8", "숙소":"#185FA5" };
+    /* ── HELPERS ── */
+    const make=(tag,attrs,parent)=>{const e=document.createElementNS(NS,tag);for(const[k,v]of Object.entries(attrs))e.setAttribute(k,v);parent&&parent.appendChild(e);return e};
+    const rnd=(a,b)=>a+Math.random()*(b-a);
+    const ppCon=CONSTELLATIONS[0]; // my constellation reference
 
-    function createMarkerIcon(place, isActive) {
-      const color = CAT_COLOR[place.category] || "#888";
-      const size = isActive ? 38 : 30;
-      const el = document.createElement("div");
-      el.className = "custom-marker" + (isActive ? " active" : "");
-      el.style.cssText = `background:${color};width:${size}px;height:${size}px;font-size:${isActive?13:11}px;border-width:${isActive?3:2.5}px`;
-      el.textContent = place.order;
-      return L.divIcon({ html: el.outerHTML, className: "", iconSize: [size, size], iconAnchor: [size/2, size/2] });
+    /* ── DEFS ── */
+    const defs=make('defs',{},sky);
+    const mkGlow=(id,blur)=>{const f=make('filter',{id,x:'-80%',y:'-80%',width:'260%',height:'260%'},defs);make('feGaussianBlur',{stdDeviation:blur,result:'b'},f);const m=make('feMerge',{},f);make('feMergeNode',{in:'b'},m);make('feMergeNode',{in:'SourceGraphic'},m)};
+    mkGlow('glow','5');mkGlow('glow-hot','10');
+    const mwF=make('filter',{id:'mw',x:'-15%',y:'-15%',width:'130%',height:'130%'},defs);make('feGaussianBlur',{stdDeviation:'32'},mwF);
+    const gxF=make('filter',{id:'gx',x:'-50%',y:'-50%',width:'200%',height:'200%'},defs);make('feGaussianBlur',{stdDeviation:'7',result:'b'},gxF);const gxM=make('feMerge',{},gxF);make('feMergeNode',{in:'b'},gxM);make('feMergeNode',{in:'SourceGraphic'},gxM);
+    const mkNeb=(id,color,op)=>{const g=make('radialGradient',{id,cx:'50%',cy:'50%',r:'50%'},defs);make('stop',{offset:'0%','stop-color':color,'stop-opacity':op},g);make('stop',{offset:'100%','stop-color':color,'stop-opacity':'0'},g)};
+    mkNeb('n-cyan','#86EDFF','.07');mkNeb('n-blue','#4B7BEC','.06');mkNeb('n-amber','#FF9B42','.055');mkNeb('n-pink','#FF6BAC','.055');mkNeb('n-purple','#9B6BFF','.06');mkNeb('n-teal','#4DD0C4','.05');
+
+    /* ── NEBULAS ── */
+    [{cx:2040,cy:1265,rx:720,ry:600,f:'n-cyan'},{cx:700,cy:600,rx:520,ry:420,f:'n-blue'},{cx:3300,cy:510,rx:520,ry:420,f:'n-amber'},{cx:750,cy:1910,rx:520,ry:420,f:'n-pink'},{cx:3210,cy:2010,rx:520,ry:420,f:'n-purple'},{cx:2850,cy:840,rx:380,ry:300,f:'n-teal'},{cx:1150,cy:1820,rx:340,ry:280,f:'n-blue',op:'.6'}]
+    .forEach(({cx,cy,rx,ry,f,op})=>make('ellipse',{cx,cy,rx,ry,fill:`url(#${f})`,opacity:op||'1'},sky));
+
+    /* ── BACKGROUND STARS ── */
+    const bgG=make('g',{},sky);
+    for(let i=0;i<180;i++){
+      const c=make('circle',{cx:rnd(0,4000).toFixed(1),cy:rnd(0,2500).toFixed(1),r:rnd(.2,1.4).toFixed(2),fill:'white'},bgG);
+      const op=rnd(.1,.48).toFixed(2);c.style.setProperty('--op',op);c.style.opacity=op;
+      c.style.animation=`twinkle ${rnd(1.6,6.5).toFixed(1)}s ${rnd(0,9).toFixed(1)}s ease-in-out infinite`;
     }
 
-    function App() {
-      const mapRef     = useRef(null);
-      const leafletRef = useRef(null);
-      const markersRef = useRef({});
-      const routeRef   = useRef(null);
-      const [activeId, setActiveId]     = useState(null);
-      const [showRoute, setShowRoute]   = useState(true);
+    /* ── MILKY WAY ── */
+    const mwG=make('g',{},sky);
+    // outer glow band
+    const mwOuter=make('rect',{x:'-400',y:'900',width:'5000',height:'500',rx:'250',fill:'rgb(210,225,255)',filter:'url(#mw)',transform:'rotate(-18,2000,1250)'},mwG);
+    mwOuter.setAttribute('opacity','.03');
+    const mwCore=make('rect',{x:'-400',y:'1020',width:'5000',height:'220',rx:'110',fill:'rgb(235,242,255)',filter:'url(#mw)',transform:'rotate(-18,2000,1250)'},mwG);
+    mwCore.setAttribute('opacity','.042');
+    // stars clustered along band
+    const angle=-18*Math.PI/180;
+    for(let i=0;i<65;i++){
+      const t=i/65,bx=t*4200-100,rawY=1160+rnd(-120,120);
+      const rx=(bx-2000)*Math.cos(angle)-(rawY-1250)*Math.sin(angle)+2000;
+      const ry=(bx-2000)*Math.sin(angle)+(rawY-1250)*Math.cos(angle)+1250;
+      const c=make('circle',{cx:rx.toFixed(1),cy:ry.toFixed(1),r:rnd(.12,.65).toFixed(2),fill:'white'},mwG);
+      const op=rnd(.18,.58).toFixed(2);c.style.setProperty('--op',op);c.style.opacity=op;
+      c.style.animation=`twinkle ${rnd(1.5,5).toFixed(1)}s ${rnd(0,7).toFixed(1)}s ease-in-out infinite`;
+    }
 
-      useEffect(() => {
-        if (leafletRef.current) return;
+    /* ── DISTANT GALAXIES ── */
+    [{cx:3720,cy:195,rx:52,ry:19,rot:-32,col:'rgba(218,208,255,1)'},{cx:270,cy:2270,rx:44,ry:16,rot:22,col:'rgba(255,218,175,1)'},{cx:3830,cy:2310,rx:36,ry:13,rot:-16,col:'rgba(175,228,255,1)'}]
+    .forEach(({cx,cy,rx,ry,rot,col})=>{
+      const g=make('g',{transform:`rotate(${rot},${cx},${cy})`},sky);
+      make('ellipse',{cx,cy,rx:rx*2.2,ry:ry*2.2,fill:col,opacity:'.02',filter:'url(#mw)'},g);
+      make('ellipse',{cx,cy,rx,ry,fill:col,opacity:'.08',filter:'url(#gx)'},g);
+      make('ellipse',{cx,cy,rx:rx*.38,ry:ry*.38,fill:col,opacity:'.25',filter:'url(#glow)'},g);
+      make('circle',{cx,cy,r:'2',fill:col,opacity:'.55'},g);
+    });
 
-        const map = L.map("map", {
-          center: [35.672, 139.745],
-          zoom: 11,
-          zoomControl: false,
-        });
-        L.control.zoom({ position: "bottomright" }).addTo(map);
+    /* ── SHOOTING STARS ── */
+    const ssStyle=document.createElement('style');
+    ssStyle.textContent=`
+      @keyframes ss1{0%,85%,100%{opacity:0;transform:translate(0,0)}86%{opacity:.8}94%{opacity:0;transform:translate(250px,105px)}}
+      @keyframes ss2{0%,50%,100%{opacity:0;transform:translate(0,0)}51%{opacity:.65}57%{opacity:0;transform:translate(190px,80px)}}
+      @keyframes ss3{0%,70%,100%{opacity:0;transform:translate(0,0)}71%{opacity:.72}76%{opacity:0;transform:translate(160px,65px)}}
+    `;
+    document.head.appendChild(ssStyle);
+    const ssG=make('g',{},sky);
+    [{x:1180,y:365,an:'ss1',dur:'12s',del:'1.5s'},{x:3050,y:640,an:'ss2',dur:'17s',del:'6s'},{x:560,y:1440,an:'ss3',dur:'14s',del:'9s'}]
+    .forEach(({x,y,an,dur,del})=>{
+      const g=make('g',{},ssG);
+      g.style.cssText=`animation:${an} ${dur} ${del} ease-out infinite`;
+      make('line',{x1:x,y1:y,x2:x+42,y2:y+18,stroke:'white','stroke-width':'1.3','stroke-linecap':'round'},g);
+      make('line',{x1:x+42,y1:y+18,x2:x+85,y2:y+36,stroke:'white','stroke-width':'.45','stroke-linecap':'round','stroke-opacity':'.35'},g);
+    });
 
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-          maxZoom: 19,
-        }).addTo(map);
+    /* ── CONSTELLATIONS ── */
+    const lineMap={}, coreMap={};
+    let hideTimer=null;
 
-        leafletRef.current = map;
+    // myLineG: separate layer for my lines (needed for add-star line rendering)
+    const myLineG=make('g',{},sky);
 
-        // Route polyline
-        const coords = PLACES.map(p => [p.lat, p.lng]);
-        routeRef.current = L.polyline(coords, {
-          color: "#D85A30", weight: 2.5, dashArray: "7,5", opacity: .75,
-        }).addTo(map);
+    for(const con of CONSTELLATIONS){
+      const lineG=con.isMe?myLineG:make('g',{},sky);
+      const labelG=make('g',{},sky);
+      const starG=make('g',{},sky);
+      const byId={};
+      for(const t of con.trips)byId[t.id]=t;
 
-        // Markers
-        PLACES.forEach(place => {
-          const marker = L.marker([place.lat, place.lng], {
-            icon: createMarkerIcon(place, false),
-          }).addTo(map);
-
-          const catColor = CAT_COLOR[place.category] || "#888";
-          const catBg    = CAT_BG[place.category]    || "#f0f0f0";
-          const catTxt   = CAT_TEXT[place.category]  || "#333";
-
-          marker.bindPopup(`
-            <div class="popup-card">
-              <span class="popup-cat" style="background:${catBg};color:${catTxt}">${place.category}</span>
-              <div class="popup-name">${place.name}</div>
-              <div class="popup-time">📅 ${place.date} · ${place.time}</div>
-              <div class="popup-memo">${place.memo}</div>
-            </div>
-          `, { offset: [0, -6] });
-
-          marker.on("click", () => {
-            setActiveId(id => id === place.id ? null : place.id);
-          });
-
-          markersRef.current[place.id] = marker;
-        });
-
-        mapRef.current = map;
-      }, []);
-
-      // Sync active state → marker icons
-      useEffect(() => {
-        PLACES.forEach(place => {
-          const marker = markersRef.current[place.id];
-          if (!marker) return;
-          const isActive = place.id === activeId;
-          marker.setIcon(createMarkerIcon(place, isActive));
-          if (isActive) {
-            marker.openPopup();
-          } else {
-            marker.closePopup();
-          }
-        });
-      }, [activeId]);
-
-      // Toggle route line
-      useEffect(() => {
-        if (!leafletRef.current || !routeRef.current) return;
-        if (showRoute) routeRef.current.addTo(leafletRef.current);
-        else           routeRef.current.remove();
-      }, [showRoute]);
-
-      function handleTimelineClick(id) {
-        const newId = activeId === id ? null : id;
-        setActiveId(newId);
-        if (newId && leafletRef.current) {
-          const place = PLACES.find(p => p.id === newId);
-          if (place) leafletRef.current.setView([place.lat, place.lng], 14, { animate: true });
-        }
+      /* Lines */
+      for(const[a,b]of con.connections){
+        const ta=byId[a],tb=byId[b];
+        const key=`${Math.min(a,b)}-${Math.max(a,b)}`;
+        lineMap[key]=make('line',{x1:ta.x,y1:ta.y,x2:tb.x,y2:tb.y,stroke:con.color,'stroke-opacity':'.1','stroke-width':'.8','stroke-dasharray':'3,5'},lineG);
       }
 
-      return (
-        <div className="app">
-          <header className="header">
-            <a href="home.html" className="back-btn" title="홈으로">←</a>
-            <div className="logo">PP</div>
-            <div className="trip-info">
-              <div className="trip-title">도쿄 여행</div>
-              <div className="trip-period">2026.08.20 – 08.22 · 2명 · 3일</div>
-            </div>
-            <span className="status-badge">완료</span>
-          </header>
+      /* User label */
+      if(!con.isMe){
+        const xs=con.trips.map(t=>t.x),avgX=xs.reduce((a,b)=>a+b,0)/xs.length;
+        const topT=con.trips.reduce((a,b)=>a.y<b.y?a:b);
+        const ly=topT.y-topT.r-36;
+        make('circle',{cx:avgX,cy:ly-8,r:14,fill:con.color,'fill-opacity':'.1',stroke:con.color,'stroke-opacity':'.3','stroke-width':'1'},labelG);
+        const iT=make('text',{x:avgX,y:ly-4,'text-anchor':'middle','font-size':'10','font-weight':'600',fill:con.color,'font-family':'-apple-system,sans-serif'},labelG);
+        iT.textContent=con.label.replace('@','')[0].toUpperCase();
+        const nT=make('text',{x:avgX,y:ly+17,'text-anchor':'middle','font-size':'11',fill:con.color,'fill-opacity':'.6','font-family':'-apple-system,sans-serif','letter-spacing':'-.2'},labelG);
+        nT.textContent=con.label;
+      }
 
-          <div className="main">
-            <div className="map-wrap">
-              <div id="map"></div>
-              <div className="map-controls">
-                <button
-                  className={"ctrl-btn" + (showRoute ? " active" : "")}
-                  onClick={() => setShowRoute(v => !v)}
-                >
-                  경로선 {showRoute ? "ON" : "OFF"}
-                </button>
-              </div>
-            </div>
+      /* Stars */
+      for(const trip of con.trips){
+        const done=trip.status!=='upcoming';
+        const g=make('g',{style:'cursor:pointer'},starG);
+        const posCircles=[];
 
-            <div className="panel">
-              <div className="stats">
-                <div className="stat-card"><div className="stat-num">10</div><div className="stat-label">방문 장소</div></div>
-                <div className="stat-card"><div className="stat-num">47km</div><div className="stat-label">이동 거리</div></div>
-                <div className="stat-card"><div className="stat-num">83</div><div className="stat-label">사진</div></div>
-              </div>
+        let pulseRing=null;
+        if(done){
+          const pr=trip.r*3.2;
+          pulseRing=make('circle',{cx:trip.x,cy:trip.y,r:pr,fill:'none',stroke:con.color,'stroke-width':'.7'},g);
+          pulseRing.style.cssText=`opacity:.22;transform-box:fill-box;transform-origin:center;animation:pulse ${rnd(2.6,4.5).toFixed(1)}s ${rnd(0,3).toFixed(1)}s ease-in-out infinite`;
+          posCircles.push(pulseRing);
+        }
+        const outerRing=make('circle',{cx:trip.x,cy:trip.y,r:trip.r+5,fill:'none',stroke:con.color,'stroke-opacity':done?'.2':'.1','stroke-width':'.7',...(!done?{'stroke-dasharray':'2.5,3'}:{})},g);
+        posCircles.push(outerRing);
+        const core=make('circle',{cx:trip.x,cy:trip.y,r:trip.r,fill:con.color,'fill-opacity':done?'1':'.35',filter:'url(#glow)'},g);
+        posCircles.push(core);
+        const label=make('text',{x:trip.x,y:trip.y+trip.r+16,'text-anchor':'middle','font-size':'11',fill:con.color,'fill-opacity':done?'.7':'.35','font-family':'-apple-system,"Apple SD Gothic Neo",sans-serif','letter-spacing':'-.2'},g);
+        label.textContent=trip.name;
 
-              <div className="tl-header-row">타임라인</div>
-              <div className="timeline">
-                {(() => {
-                  const days = [...new Set(PLACES.map(p => p.date))];
-                  const dayLabel = { "08.20":"Day 1", "08.21":"Day 2", "08.22":"Day 3" };
-                  return days.map(day => {
-                    const group = PLACES.filter(p => p.date === day);
-                    return (
-                      <div key={day}>
-                        <div className="day-label">
-                          <span className="day-label-num">{dayLabel[day] || day}</span>
-                          <span className="day-label-date">{day}</span>
-                          <div className="day-label-line"></div>
-                        </div>
-                        {group.map((place, i) => {
-                          const color = CAT_COLOR[place.category] || "#888";
-                          const isLastInGroup = i === group.length - 1;
-                          return (
-                            <div
-                              key={place.id}
-                              className={"tl-item" + (activeId === place.id ? " active" : "")}
-                              onClick={() => handleTimelineClick(place.id)}
-                            >
-                              <div className="tl-left">
-                                <div className="tl-order">{place.order}</div>
-                                <div className="tl-dot" style={{ background: color }}></div>
-                                {!isLastInGroup && <div className="tl-vline"></div>}
-                              </div>
-                              <div className="tl-content">
-                                <div className="tl-name">{place.name}</div>
-                                <div className="tl-time">{place.time} · <span style={{color, fontWeight:600, fontSize:'10px'}}>{place.category}</span></div>
-                                <div className="tl-memo">{place.memo}</div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            </div>
-          </div>
-        </div>
-      );
+        coreMap[trip.id]={core,baseR:trip.r,con,trip,circles:posCircles,label,group:g};
+
+        g.addEventListener('mouseenter',()=>{
+          if(isDragging||draggingStar!==null||addMode)return;
+          clearTimeout(hideTimer);
+          showCard(trip,con);
+          setLines(trip.id,con,true);
+          core.setAttribute('r',trip.r*1.35);
+          core.setAttribute('filter','url(#glow-hot)');
+        });
+        g.addEventListener('mouseleave',()=>{
+          hideTimer=setTimeout(()=>{
+            doHide();setLines(trip.id,con,false);
+            core.setAttribute('r',trip.r);
+            core.setAttribute('filter','url(#glow)');
+          },90);
+        });
+
+        /* Drag — my stars only */
+        if(con.isMe){
+          g.addEventListener('mousedown',e=>{
+            if(addMode)return;
+            e.stopPropagation();e.preventDefault();
+            draggingStar=trip.id;
+            const ux=(e.clientX-tx)/zoom,uy=(e.clientY-ty)/zoom;
+            starDragOX=ux-trip.x;starDragOY=uy-trip.y;
+            doHide();
+            document.body.classList.add('star-drag');
+          });
+        }
+      }
     }
 
-    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    /* ── CARD ── */
+    const card=document.getElementById('trip-card');
+    card.addEventListener('mouseenter',()=>clearTimeout(hideTimer));
+    card.addEventListener('mouseleave',()=>{hideTimer=setTimeout(doHide,90)});
+
+    function setLines(tripId,con,on){
+      for(const[a,b]of con.connections){
+        if(a===tripId||b===tripId){
+          const k=`${Math.min(a,b)}-${Math.max(a,b)}`;
+          if(lineMap[k]){lineMap[k].setAttribute('stroke-opacity',on?'.5':'.1');lineMap[k].setAttribute('stroke-width',on?'1':'.8')}
+        }
+      }
+    }
+    function doHide(){card.classList.remove('visible');card.classList.add('hidden')}
+    function showCard(trip,con){
+      const sx=trip.x*zoom+tx,sy=trip.y*zoom+ty;
+      const uDiv=document.getElementById('c-user');
+      if(con.isMe){uDiv.style.display='none'}
+      else{uDiv.style.display='flex';uDiv.innerHTML=`<div class="card-user-dot" style="background:${con.color}"></div><div class="card-user-name" style="color:${con.color}">${con.label}</div>`}
+      document.getElementById('c-country').textContent=trip.country;
+      document.getElementById('c-name').textContent=trip.name;
+      document.getElementById('c-when').textContent=`${trip.year}년 ${trip.month} · ${trip.days}일간`;
+      document.getElementById('c-nums').innerHTML=`<div class="cn"><div class="cn-num" style="color:${con.color}">${trip.days}</div><div class="cn-lbl">일간</div></div><div class="cn"><div class="cn-num" style="color:${con.color}">${trip.places}</div><div class="cn-lbl">장소</div></div>`;
+      const dot=document.getElementById('c-dot');dot.style.background=con.color;dot.style.color=con.color;
+      const action=document.getElementById('c-action');
+      if(trip.file)action.innerHTML=`<a href="${trip.file}" class="card-link" style="color:${con.color};border-color:${con.color}40">기록 보기 →</a>`;
+      else if(trip.status==='upcoming')action.innerHTML=`<span class="card-upcoming">계획 중</span>`;
+      else action.innerHTML='';
+      let left=sx+20,top=sy-90;
+      if(left+218>W-10)left=sx-230;if(top<72)top=sy+20;if(top+230>H-10)top=H-235;
+      card.style.left=left+'px';card.style.top=top+'px';
+      card.classList.remove('hidden');card.classList.add('visible');
+    }
+
+    /* ── MOVE STAR ── */
+    function moveTripStar(tripId,nx,ny){
+      const e=coreMap[tripId];
+      if(!e)return;
+      e.trip.x=nx;e.trip.y=ny;
+      for(const c of e.circles){c.setAttribute('cx',nx);c.setAttribute('cy',ny)}
+      e.label.setAttribute('x',nx);e.label.setAttribute('y',ny+e.baseR+16);
+      for(const[a,b]of e.con.connections){
+        if(a===tripId||b===tripId){
+          const k=`${Math.min(a,b)}-${Math.max(a,b)}`;
+          if(lineMap[k]){
+            if(a===tripId){lineMap[k].setAttribute('x1',nx);lineMap[k].setAttribute('y1',ny)}
+            else{lineMap[k].setAttribute('x2',nx);lineMap[k].setAttribute('y2',ny)}
+          }
+        }
+      }
+    }
+
+    /* ── PAN & ZOOM ── */
+    let tx=W/2-2013,ty=H/2-1252,zoom=1;
+    let isDragging=false,lastX,lastY,hasDragged=false;
+    let draggingStar=null,starDragOX=0,starDragOY=0;
+
+    function applyTransform(){UNI.style.transform=`translate(${tx}px,${ty}px) scale(${zoom})`}
+    applyTransform();
+
+    const wrap=document.getElementById('universe-wrap');
+    wrap.addEventListener('mousedown',e=>{
+      // Ignore clicks that originate from fixed UI controls
+      if(e.target.closest('#add-btn,.z-btn,#add-form,.trip-card')) return;
+      if(addMode){
+        const ux=(e.clientX-tx)/zoom,uy=(e.clientY-ty)/zoom;
+        pendingAddPos={x:ux,y:uy};
+        document.getElementById('add-form').classList.remove('hidden');
+        document.getElementById('af-name').focus();
+        return;
+      }
+      isDragging=true;lastX=e.clientX;lastY=e.clientY;
+      document.body.classList.add('dragging');doHide();
+    });
+    window.addEventListener('mousemove',e=>{
+      if(draggingStar!==null){
+        const ux=(e.clientX-tx)/zoom,uy=(e.clientY-ty)/zoom;
+        moveTripStar(draggingStar,ux-starDragOX,uy-starDragOY);return;
+      }
+      if(!isDragging)return;
+      tx+=e.clientX-lastX;ty+=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;
+      applyTransform();
+      if(!hasDragged){hasDragged=true;document.getElementById('hint').classList.add('fade')}
+    });
+    window.addEventListener('mouseup',()=>{
+      if(draggingStar!==null){draggingStar=null;document.body.classList.remove('star-drag');return}
+      isDragging=false;document.body.classList.remove('dragging');
+    });
+
+    /* Touch */
+    let lastTX,lastTY,lastPinch=null;
+    wrap.addEventListener('touchstart',e=>{
+      if(e.touches.length===1){isDragging=true;lastTX=e.touches[0].clientX;lastTY=e.touches[0].clientY;doHide()}
+      else if(e.touches.length===2){isDragging=false;lastPinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)}
+      e.preventDefault();
+    },{passive:false});
+    wrap.addEventListener('touchmove',e=>{
+      if(e.touches.length===1&&isDragging){tx+=e.touches[0].clientX-lastTX;ty+=e.touches[0].clientY-lastTY;lastTX=e.touches[0].clientX;lastTY=e.touches[0].clientY;applyTransform();if(!hasDragged){hasDragged=true;document.getElementById('hint').classList.add('fade')}}
+      else if(e.touches.length===2&&lastPinch){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);doZoom(d/lastPinch,(e.touches[0].clientX+e.touches[1].clientX)/2,(e.touches[0].clientY+e.touches[1].clientY)/2);lastPinch=d}
+      e.preventDefault();
+    },{passive:false});
+    wrap.addEventListener('touchend',()=>{isDragging=false;lastPinch=null});
+
+    wrap.addEventListener('wheel',e=>{e.preventDefault();doZoom(e.deltaY>0?.92:1.09,e.clientX,e.clientY)},{passive:false});
+    document.getElementById('zin').addEventListener('click',()=>doZoom(1.2,W/2,H/2));
+    document.getElementById('zout').addEventListener('click',()=>doZoom(.8,W/2,H/2));
+    function doZoom(f,cx,cy){const nz=Math.max(.3,Math.min(3,zoom*f));const ux=(cx-tx)/zoom,uy=(cy-ty)/zoom;zoom=nz;tx=cx-ux*zoom;ty=cy-uy*zoom;applyTransform()}
+
+    /* ── ADD STAR MODE ── */
+    let addMode=false,pendingAddPos=null;
+    let nextId=100;
+
+    document.getElementById('add-btn').addEventListener('click',()=>{
+      addMode=!addMode;
+      document.body.classList.toggle('add-mode',addMode);
+      document.getElementById('add-btn').classList.toggle('active',addMode);
+      document.getElementById('add-hint').classList.toggle('show',addMode);
+      document.getElementById('hint').classList.toggle('fade',addMode||hasDragged);
+      if(!addMode)document.getElementById('add-form').classList.add('hidden');
+    });
+
+    document.getElementById('af-cancel').addEventListener('click',cancelAdd);
+    document.getElementById('af-ok').addEventListener('click',confirmAdd);
+    document.getElementById('af-name').addEventListener('keydown',e=>e.key==='Enter'&&confirmAdd());
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&addMode)cancelAdd()});
+
+    function cancelAdd(){
+      addMode=false;pendingAddPos=null;
+      document.body.classList.remove('add-mode');
+      document.getElementById('add-btn').classList.remove('active');
+      document.getElementById('add-hint').classList.remove('show');
+      document.getElementById('add-form').classList.add('hidden');
+      document.getElementById('af-name').value='';
+      document.getElementById('af-country').value='';
+      document.getElementById('af-year').value='';
+    }
+
+    function confirmAdd(){
+      const name=document.getElementById('af-name').value.trim()||'새 여행';
+      const country=document.getElementById('af-country').value.trim()||'미정';
+      const year=parseInt(document.getElementById('af-year').value)||new Date().getFullYear();
+      if(!pendingAddPos)return;
+      const {x,y}=pendingAddPos;
+      addTripStar(x,y,name,country,year);
+      cancelAdd();
+    }
+
+    function addTripStar(x,y,name,country,year){
+      const id=nextId++;
+      const r=5;
+      const trip={id,name,country,year,month:'',days:0,places:0,status:'completed',x,y,r};
+      ppCon.trips.push(trip);
+
+      // connect to nearest existing my-star
+      const nearest=ppCon.trips.slice(0,-1).reduce((best,t)=>{
+        const d=Math.hypot(t.x-x,t.y-y);return d<best.d?{t,d}:{best};
+      },{t:null,d:Infinity}).t;
+
+      const starG=make('g',{},sky);
+      const posCircles=[];
+      const g=make('g',{style:'cursor:pointer'},starG);
+
+      // new star pulse
+      const pr=r*3.2;
+      const ring=make('circle',{cx:x,cy:y,r:pr,fill:'none',stroke:'#86EDFF','stroke-width':'.7'},g);
+      ring.style.cssText=`opacity:.22;transform-box:fill-box;transform-origin:center;animation:pulse 3.2s ease-in-out infinite`;
+      posCircles.push(ring);
+      const outerRing=make('circle',{cx:x,cy:y,r:r+5,fill:'none',stroke:'#86EDFF','stroke-opacity':'.2','stroke-width':'.7'},g);
+      posCircles.push(outerRing);
+      const core=make('circle',{cx:x,cy:y,r,fill:'#86EDFF',filter:'url(#glow)'},g);
+      posCircles.push(core);
+      const label=make('text',{x,y:y+r+16,'text-anchor':'middle','font-size':'11',fill:'#86EDFF','fill-opacity':'.7','font-family':'-apple-system,sans-serif','letter-spacing':'-.2'},g);
+      label.textContent=name;
+
+      coreMap[id]={core,baseR:r,con:ppCon,trip,circles:posCircles,label,group:g};
+
+      // connect line to nearest
+      if(nearest){
+        const key=`${Math.min(id,nearest.id)}-${Math.max(id,nearest.id)}`;
+        ppCon.connections.push([id,nearest.id]);
+        lineMap[key]=make('line',{x1:x,y1:y,x2:nearest.x,y2:nearest.y,stroke:'#86EDFF','stroke-opacity':'.1','stroke-width':'.8','stroke-dasharray':'3,5'},myLineG);
+      }
+
+      // drag
+      g.addEventListener('mousedown',e=>{
+        e.stopPropagation();e.preventDefault();
+        draggingStar=id;
+        const ux=(e.clientX-tx)/zoom,uy=(e.clientY-ty)/zoom;
+        starDragOX=ux-trip.x;starDragOY=uy-trip.y;
+        doHide();document.body.classList.add('star-drag');
+      });
+      g.addEventListener('mouseenter',()=>{
+        if(isDragging||draggingStar!==null)return;
+        clearTimeout(hideTimer);showCard(trip,ppCon);
+        setLines(id,ppCon,true);
+        core.setAttribute('r',r*1.35);core.setAttribute('filter','url(#glow-hot)');
+      });
+      g.addEventListener('mouseleave',()=>{
+        hideTimer=setTimeout(()=>{doHide();setLines(id,ppCon,false);core.setAttribute('r',r);core.setAttribute('filter','url(#glow)')},90);
+      });
+
+      // flash animation
+      core.style.animation='none';
+      setTimeout(()=>{core.style.animation=''},50);
+    }
+
+    // hide drag tip after first drag
+    setTimeout(()=>document.getElementById('drag-tip').style.opacity='0',8000);
   </script>
 </body>
 </html>
