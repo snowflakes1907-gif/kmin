@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>도쿄 여행</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    body { background: #f4f1eb; }
+
+    .app { display: flex; flex-direction: column; height: 100vh; }
+
+    /* Header */
+    .header {
+      background: #0A2530; padding: 12px 20px;
+      display: flex; align-items: center; gap: 12px; flex-shrink: 0; z-index: 1000;
+    }
+    .logo {
+      width: 34px; height: 34px; background: #133A4A; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 600; color: #86EDFF; letter-spacing: .5px;
+    }
+    .trip-info { flex: 1; }
+    .trip-title { font-size: 15px; font-weight: 600; color: #F0FEFF; }
+    .trip-period { font-size: 12px; color: #86EDFF; margin-top: 1px; opacity: .85; }
+    .status-badge {
+      font-size: 11px; padding: 4px 11px; border-radius: 20px;
+      background: #133A4A; color: #86EDFF; font-weight: 500;
+      border: 1px solid rgba(134,237,255,.3);
+    }
+
+    /* Main layout */
+    .main { display: flex; flex: 1; overflow: hidden; }
+    .map-wrap { flex: 1; position: relative; }
+    #map { width: 100%; height: 100%; }
+
+    /* Leaflet marker overrides */
+    .custom-marker {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 600; color: white;
+      border: 2.5px solid white;
+      box-shadow: 0 2px 6px rgba(0,0,0,.25);
+      transition: transform .15s, box-shadow .15s;
+      cursor: pointer;
+    }
+    .custom-marker.active {
+      transform: scale(1.25);
+      box-shadow: 0 4px 12px rgba(0,0,0,.35);
+    }
+    .leaflet-popup-content-wrapper {
+      border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,.12);
+      border: none; padding: 0;
+    }
+    .leaflet-popup-content { margin: 0; }
+    .popup-card { padding: 12px 14px; min-width: 160px; }
+    .popup-cat {
+      font-size: 10px; font-weight: 600; letter-spacing: .5px;
+      padding: 2px 7px; border-radius: 10px; display: inline-block;
+      margin-bottom: 5px;
+    }
+    .popup-name { font-size: 14px; font-weight: 600; color: #1a1a1a; margin-bottom: 3px; }
+    .popup-time { font-size: 12px; color: #666; margin-bottom: 3px; }
+    .popup-memo { font-size: 11px; color: #888; }
+    .leaflet-popup-tip-container { display: none; }
+
+    /* Route toggle */
+    .map-controls {
+      position: absolute; top: 12px; left: 12px; z-index: 999;
+      display: flex; gap: 6px;
+    }
+    .ctrl-btn {
+      background: white; border: none; border-radius: 7px;
+      padding: 6px 12px; font-size: 12px; cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,.15);
+      color: #333; font-weight: 500;
+      transition: background .12s;
+    }
+    .ctrl-btn:hover { background: #f0f0f0; }
+    .ctrl-btn.active { background: #0A2530; color: #86EDFF; }
+
+    /* Right panel */
+    .panel {
+      width: 290px; flex-shrink: 0; background: white;
+      border-left: 1px solid #e8e4dc;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .stats {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+      padding: 12px; background: #D6F9FF; flex-shrink: 0;
+    }
+    .stat-card {
+      background: white; border-radius: 8px;
+      padding: 8px 10px; text-align: center;
+    }
+    .stat-num { font-size: 18px; font-weight: 600; color: #0A8BAB; }
+    .stat-label { font-size: 10px; color: #1A9BB5; margin-top: 1px; }
+
+    .tl-header-row {
+      padding: 12px 14px 6px;
+      font-size: 10px; font-weight: 600; color: #888;
+      letter-spacing: .6px; text-transform: uppercase; flex-shrink: 0;
+    }
+    .timeline { overflow-y: auto; flex: 1; padding: 0 10px 12px; }
+
+    .tl-item {
+      display: flex; gap: 10px; padding: 9px 8px;
+      border-radius: 9px; cursor: pointer;
+      border: 1.5px solid transparent;
+      transition: background .12s, border-color .12s;
+      align-items: flex-start; margin-bottom: 2px;
+    }
+    .tl-item:hover { background: #f0fcff; }
+    .tl-item.active { border-color: #0AABCF; background: #D6F9FF; }
+
+    .tl-left { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; padding-top: 2px; }
+    .tl-order { font-size: 9px; font-weight: 600; color: #aaa; min-height: 13px; text-align: center; }
+    .tl-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; margin-top: 2px; }
+    .tl-vline { width: 1.5px; flex: 1; background: #e8e4dc; min-height: 14px; margin-top: 3px; }
+
+    .tl-content { flex: 1; min-width: 0; }
+    .tl-name { font-size: 13px; font-weight: 600; color: #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tl-time { font-size: 11px; color: #888; margin-top: 2px; }
+    .tl-memo { font-size: 11px; color: #aaa; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .day-label {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 8px 4px; margin-top: 4px;
+    }
+    .day-label-num { font-size: 10px; font-weight: 700; color: #0A8BAB; letter-spacing: .4px; }
+    .day-label-date { font-size: 10px; color: #bbb; }
+    .day-label-line { flex: 1; height: 1px; background: #e8e4dc; }
+
+    .back-btn {
+      color: rgba(134,237,255,.7); text-decoration: none; font-size: 17px;
+      padding: 4px 6px; border-radius: 6px; line-height: 1;
+      transition: background .12s, color .12s; flex-shrink: 0;
+    }
+    .back-btn:hover { background: rgba(134,237,255,.12); color: #86EDFF; }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .main { flex-direction: column; }
+      .map-wrap { height: 55vh; flex: none; }
+      .panel { width: 100%; height: 45vh; flex: none; border-left: none; border-top: 1px solid #e8e4dc; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const PLACES = [
+      // Day 1
+      { id:1,  name:"아사쿠사 센소지",   category:"관광지", lat:35.7147, lng:139.7966, date:"08.20", time:"13:00", memo:"도쿄 가장 오래된 사원, 향 연기와 전통 분위기",   order:1  },
+      { id:2,  name:"나카미세 거리",     category:"쇼핑",   lat:35.7182, lng:139.7954, date:"08.20", time:"14:30", memo:"센소지 앞 전통 기념품 상점가, 닌교야키 필수",   order:2  },
+      { id:3,  name:"우에노 공원",       category:"관광지", lat:35.7141, lng:139.7714, date:"08.20", time:"17:00", memo:"저녁 산책, 불 켜진 연못과 황금빛 하늘",         order:3  },
+      // Day 2
+      { id:4,  name:"신주쿠 교엔",       category:"관광지", lat:35.6852, lng:139.7100, date:"08.21", time:"10:00", memo:"5만 그루 수목, 프랑스식·일본식 정원 혼재",     order:4  },
+      { id:5,  name:"하라주쿠 다케시타", category:"쇼핑",   lat:35.6716, lng:139.7031, date:"08.21", time:"13:30", memo:"크레이프 골목, 독특한 팝컬처 패션 쇼핑",       order:5  },
+      { id:6,  name:"시부야 스크램블",   category:"관광지", lat:35.6595, lng:139.7004, date:"08.21", time:"18:00", memo:"1회 3000명 동시 횡단, 마그넷 옥상 뷰 포인트", order:6  },
+      { id:7,  name:"이치란 라멘",       category:"음식점", lat:35.6580, lng:139.7016, date:"08.21", time:"20:00", memo:"1인 부스 시스템 원조 돈코츠, 30분 웨이팅",    order:7  },
+      // Day 3
+      { id:8,  name:"츠키지 시장",       category:"음식점", lat:35.6654, lng:139.7707, date:"08.22", time:"09:00", memo:"참치 해체쇼 관람 후 새벽 초밥 정식",           order:8  },
+      { id:9,  name:"오다이바",          category:"관광지", lat:35.6197, lng:139.7764, date:"08.22", time:"14:00", memo:"레인보우 브릿지 뷰, 유니콘 건담 실물 스케일", order:9  },
+      { id:10, name:"롯폰기 힐즈 전망대",category:"관광지", lat:35.6604, lng:139.7290, date:"08.22", time:"19:30", memo:"도쿄 타워·스카이트리 동시 조망, 야경 최고",   order:10 },
+    ];
+
+    const CAT_COLOR = { "관광지":"#97C459", "음식점":"#F0997B", "쇼핑":"#B486FF", "숙소":"#85B7EB" };
+    const CAT_BG    = { "관광지":"#EAF3DE", "음식점":"#FAECE7", "쇼핑":"#F2E8FF", "숙소":"#E6F1FB" };
+    const CAT_TEXT  = { "관광지":"#3B6D11", "음식점":"#993C1D", "쇼핑":"#6B21A8", "숙소":"#185FA5" };
+
+    function createMarkerIcon(place, isActive) {
+      const color = CAT_COLOR[place.category] || "#888";
+      const size = isActive ? 38 : 30;
+      const el = document.createElement("div");
+      el.className = "custom-marker" + (isActive ? " active" : "");
+      el.style.cssText = `background:${color};width:${size}px;height:${size}px;font-size:${isActive?13:11}px;border-width:${isActive?3:2.5}px`;
+      el.textContent = place.order;
+      return L.divIcon({ html: el.outerHTML, className: "", iconSize: [size, size], iconAnchor: [size/2, size/2] });
+    }
+
+    function App() {
+      const mapRef     = useRef(null);
+      const leafletRef = useRef(null);
+      const markersRef = useRef({});
+      const routeRef   = useRef(null);
+      const [activeId, setActiveId]     = useState(null);
+      const [showRoute, setShowRoute]   = useState(true);
+
+      useEffect(() => {
+        if (leafletRef.current) return;
+
+        const map = L.map("map", {
+          center: [35.672, 139.745],
+          zoom: 11,
+          zoomControl: false,
+        });
+        L.control.zoom({ position: "bottomright" }).addTo(map);
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          maxZoom: 19,
+        }).addTo(map);
+
+        leafletRef.current = map;
+
+        // Route polyline
+        const coords = PLACES.map(p => [p.lat, p.lng]);
+        routeRef.current = L.polyline(coords, {
+          color: "#D85A30", weight: 2.5, dashArray: "7,5", opacity: .75,
+        }).addTo(map);
+
+        // Markers
+        PLACES.forEach(place => {
+          const marker = L.marker([place.lat, place.lng], {
+            icon: createMarkerIcon(place, false),
+          }).addTo(map);
+
+          const catColor = CAT_COLOR[place.category] || "#888";
+          const catBg    = CAT_BG[place.category]    || "#f0f0f0";
+          const catTxt   = CAT_TEXT[place.category]  || "#333";
+
+          marker.bindPopup(`
+            <div class="popup-card">
+              <span class="popup-cat" style="background:${catBg};color:${catTxt}">${place.category}</span>
+              <div class="popup-name">${place.name}</div>
+              <div class="popup-time">📅 ${place.date} · ${place.time}</div>
+              <div class="popup-memo">${place.memo}</div>
+            </div>
+          `, { offset: [0, -6] });
+
+          marker.on("click", () => {
+            setActiveId(id => id === place.id ? null : place.id);
+          });
+
+          markersRef.current[place.id] = marker;
+        });
+
+        mapRef.current = map;
+      }, []);
+
+      // Sync active state → marker icons
+      useEffect(() => {
+        PLACES.forEach(place => {
+          const marker = markersRef.current[place.id];
+          if (!marker) return;
+          const isActive = place.id === activeId;
+          marker.setIcon(createMarkerIcon(place, isActive));
+          if (isActive) {
+            marker.openPopup();
+          } else {
+            marker.closePopup();
+          }
+        });
+      }, [activeId]);
+
+      // Toggle route line
+      useEffect(() => {
+        if (!leafletRef.current || !routeRef.current) return;
+        if (showRoute) routeRef.current.addTo(leafletRef.current);
+        else           routeRef.current.remove();
+      }, [showRoute]);
+
+      function handleTimelineClick(id) {
+        const newId = activeId === id ? null : id;
+        setActiveId(newId);
+        if (newId && leafletRef.current) {
+          const place = PLACES.find(p => p.id === newId);
+          if (place) leafletRef.current.setView([place.lat, place.lng], 14, { animate: true });
+        }
+      }
+
+      return (
+        <div className="app">
+          <header className="header">
+            <a href="home.html" className="back-btn" title="홈으로">←</a>
+            <div className="logo">PP</div>
+            <div className="trip-info">
+              <div className="trip-title">도쿄 여행</div>
+              <div className="trip-period">2026.08.20 – 08.22 · 2명 · 3일</div>
+            </div>
+            <span className="status-badge">완료</span>
+          </header>
+
+          <div className="main">
+            <div className="map-wrap">
+              <div id="map"></div>
+              <div className="map-controls">
+                <button
+                  className={"ctrl-btn" + (showRoute ? " active" : "")}
+                  onClick={() => setShowRoute(v => !v)}
+                >
+                  경로선 {showRoute ? "ON" : "OFF"}
+                </button>
+              </div>
+            </div>
+
+            <div className="panel">
+              <div className="stats">
+                <div className="stat-card"><div className="stat-num">10</div><div className="stat-label">방문 장소</div></div>
+                <div className="stat-card"><div className="stat-num">47km</div><div className="stat-label">이동 거리</div></div>
+                <div className="stat-card"><div className="stat-num">83</div><div className="stat-label">사진</div></div>
+              </div>
+
+              <div className="tl-header-row">타임라인</div>
+              <div className="timeline">
+                {(() => {
+                  const days = [...new Set(PLACES.map(p => p.date))];
+                  const dayLabel = { "08.20":"Day 1", "08.21":"Day 2", "08.22":"Day 3" };
+                  return days.map(day => {
+                    const group = PLACES.filter(p => p.date === day);
+                    return (
+                      <div key={day}>
+                        <div className="day-label">
+                          <span className="day-label-num">{dayLabel[day] || day}</span>
+                          <span className="day-label-date">{day}</span>
+                          <div className="day-label-line"></div>
+                        </div>
+                        {group.map((place, i) => {
+                          const color = CAT_COLOR[place.category] || "#888";
+                          const isLastInGroup = i === group.length - 1;
+                          return (
+                            <div
+                              key={place.id}
+                              className={"tl-item" + (activeId === place.id ? " active" : "")}
+                              onClick={() => handleTimelineClick(place.id)}
+                            >
+                              <div className="tl-left">
+                                <div className="tl-order">{place.order}</div>
+                                <div className="tl-dot" style={{ background: color }}></div>
+                                {!isLastInGroup && <div className="tl-vline"></div>}
+                              </div>
+                              <div className="tl-content">
+                                <div className="tl-name">{place.name}</div>
+                                <div className="tl-time">{place.time} · <span style={{color, fontWeight:600, fontSize:'10px'}}>{place.category}</span></div>
+                                <div className="tl-memo">{place.memo}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
