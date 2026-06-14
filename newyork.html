@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>뉴욕 여행</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    body { background: #f4f1eb; }
+    .app { display: flex; flex-direction: column; height: 100vh; }
+    .header { background: #1A0D2E; padding: 12px 20px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; z-index: 1000; }
+    .logo { width: 34px; height: 34px; background: #2E1A4A; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #86EDFF; letter-spacing: .5px; }
+    .trip-info { flex: 1; }
+    .trip-title { font-size: 15px; font-weight: 600; color: #F0FEFF; }
+    .trip-period { font-size: 12px; color: #86EDFF; margin-top: 1px; opacity: .85; }
+    .status-badge { font-size: 11px; padding: 4px 11px; border-radius: 20px; background: #2E1A4A; color: #86EDFF; font-weight: 500; border: 1px solid rgba(134,237,255,.3); }
+    .main { display: flex; flex: 1; overflow: hidden; }
+    .map-wrap { flex: 1; position: relative; }
+    #map { width: 100%; height: 100%; }
+    .custom-marker { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: white; border: 2.5px solid white; box-shadow: 0 2px 6px rgba(0,0,0,.25); cursor: pointer; }
+    .custom-marker.active { transform: scale(1.25); box-shadow: 0 4px 12px rgba(0,0,0,.35); }
+    .leaflet-popup-content-wrapper { border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,.12); border: none; padding: 0; }
+    .leaflet-popup-content { margin: 0; }
+    .popup-card { padding: 12px 14px; min-width: 160px; }
+    .popup-cat { font-size: 10px; font-weight: 600; letter-spacing: .5px; padding: 2px 7px; border-radius: 10px; display: inline-block; margin-bottom: 5px; }
+    .popup-name { font-size: 14px; font-weight: 600; color: #1a1a1a; margin-bottom: 3px; }
+    .popup-time { font-size: 12px; color: #666; margin-bottom: 3px; }
+    .popup-memo { font-size: 11px; color: #888; }
+    .leaflet-popup-tip-container { display: none; }
+    .map-controls { position: absolute; top: 12px; left: 12px; z-index: 999; display: flex; gap: 6px; }
+    .ctrl-btn { background: white; border: none; border-radius: 7px; padding: 6px 12px; font-size: 12px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.15); color: #333; font-weight: 500; transition: background .12s; }
+    .ctrl-btn:hover { background: #f0f0f0; }
+    .ctrl-btn.active { background: #1A0D2E; color: #86EDFF; }
+    .panel { width: 290px; flex-shrink: 0; background: white; border-left: 1px solid #e8e4dc; display: flex; flex-direction: column; overflow: hidden; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; background: #EDE6FF; flex-shrink: 0; }
+    .stat-card { background: white; border-radius: 8px; padding: 8px 10px; text-align: center; }
+    .stat-num { font-size: 18px; font-weight: 600; color: #6B21A8; }
+    .stat-label { font-size: 10px; color: #9333EA; margin-top: 1px; }
+    .tl-header-row { padding: 12px 14px 6px; font-size: 10px; font-weight: 600; color: #888; letter-spacing: .6px; text-transform: uppercase; flex-shrink: 0; }
+    .timeline { overflow-y: auto; flex: 1; padding: 0 10px 12px; }
+    .tl-item { display: flex; gap: 10px; padding: 9px 8px; border-radius: 9px; cursor: pointer; border: 1.5px solid transparent; transition: background .12s, border-color .12s; align-items: flex-start; margin-bottom: 2px; }
+    .tl-item:hover { background: #F5F0FF; }
+    .tl-item.active { border-color: #9333EA; background: #EDE6FF; }
+    .tl-left { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; padding-top: 2px; }
+    .tl-order { font-size: 9px; font-weight: 600; color: #aaa; min-height: 13px; text-align: center; }
+    .tl-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; margin-top: 2px; }
+    .tl-vline { width: 1.5px; flex: 1; background: #e8e4dc; min-height: 14px; margin-top: 3px; }
+    .tl-content { flex: 1; min-width: 0; }
+    .tl-name { font-size: 13px; font-weight: 600; color: #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tl-time { font-size: 11px; color: #888; margin-top: 2px; }
+    .tl-memo { font-size: 11px; color: #aaa; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .day-label { display: flex; align-items: center; gap: 8px; padding: 10px 8px 4px; margin-top: 4px; }
+    .day-label-num { font-size: 10px; font-weight: 700; color: #6B21A8; letter-spacing: .4px; }
+    .day-label-date { font-size: 10px; color: #bbb; }
+    .day-label-line { flex: 1; height: 1px; background: #e8e4dc; }
+    .back-btn { color: rgba(134,237,255,.7); text-decoration: none; font-size: 17px; padding: 4px 6px; border-radius: 6px; line-height: 1; transition: background .12s, color .12s; flex-shrink: 0; }
+    .back-btn:hover { background: rgba(134,237,255,.12); color: #86EDFF; }
+    @media (max-width: 640px) {
+      .main { flex-direction: column; }
+      .map-wrap { height: 55vh; flex: none; }
+      .panel { width: 100%; height: 45vh; flex: none; border-left: none; border-top: 1px solid #e8e4dc; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const PLACES = [
+      // Day 1
+      { id:1,  name:"타임스스퀘어",       category:"관광지", lat:40.7580, lng:-73.9855, date:"07.15", time:"11:00", memo:"네온사인 속 도심의 심장, 번쩍이는 광고판에 압도",        order:1  },
+      { id:2,  name:"첼시 마켓",          category:"음식점", lat:40.7425, lng:-74.0047, date:"07.15", time:"13:00", memo:"뉴욕 최고의 푸드홀, 랍스터 롤과 뉴잉글랜드 클램차우더",  order:2  },
+      { id:3,  name:"하이라인 파크",      category:"관광지", lat:40.7480, lng:-74.0048, date:"07.15", time:"16:00", memo:"옛 철로 위 공원, 허드슨강 뷰와 야외 예술 설치물",         order:3  },
+      // Day 2
+      { id:4,  name:"센트럴파크",         category:"관광지", lat:40.7851, lng:-73.9683, date:"07.16", time:"09:30", memo:"840에이커의 도심 오아시스, 이른 아침 조깅 코스",          order:4  },
+      { id:5,  name:"메트로폴리탄 미술관",category:"관광지", lat:40.7794, lng:-73.9632, date:"07.16", time:"12:00", memo:"300만점 소장, 이집트 신전 실내 전시가 압도적",            order:5  },
+      { id:6,  name:"5번가",             category:"쇼핑",   lat:40.7589, lng:-73.9787, date:"07.16", time:"17:30", memo:"애플 스토어 큐브·버그도프 굿맨, 윈도쇼핑만 해도 충분",   order:6  },
+      // Day 3
+      { id:7,  name:"자유의 여신상",      category:"관광지", lat:40.6892, lng:-74.0445, date:"07.17", time:"09:00", memo:"페리 타고 30분, 왕관 전망대 예약은 6개월 전 필수",        order:7  },
+      { id:8,  name:"브루클린 브리지",    category:"관광지", lat:40.7061, lng:-73.9969, date:"07.17", time:"14:00", memo:"도보 40분 횡단, 맨해튼 스카이라인 최고 뷰 포인트",       order:8  },
+      { id:9,  name:"피자 조스",          category:"음식점", lat:40.7127, lng:-74.0059, date:"07.17", time:"18:00", memo:"1달러 피자 원조, 뉴요커처럼 접어서 걸어가며 먹기",       order:9  },
+      // Day 4
+      { id:10, name:"소호",              category:"쇼핑",   lat:40.7228, lng:-74.0019, date:"07.18", time:"11:00", memo:"캐스트 아이언 빌딩 사이 럭셔리 & 아트 갤러리 탐방",      order:10 },
+      { id:11, name:"워싱턴 스퀘어 파크",category:"관광지", lat:40.7308, lng:-73.9973, date:"07.18", time:"14:30", memo:"NYU 광장, 버스킹과 체스 두는 로컬들",                    order:11 },
+      { id:12, name:"그리니치 빌리지",   category:"관광지", lat:40.7336, lng:-74.0027, date:"07.18", time:"16:00", memo:"보헤미안 분위기, 재즈바와 빈티지 카페 탐방",              order:12 },
+      // Day 5
+      { id:13, name:"브루클린 파크 슬로프",category:"관광지",lat:40.6726, lng:-73.9779, date:"07.19", time:"10:30", memo:"로컬 브루클린 분위기, 브런치 성지 스미스 스트리트",       order:13 },
+      { id:14, name:"윌리엄스버그",      category:"쇼핑",   lat:40.7081, lng:-73.9571, date:"07.19", time:"14:00", memo:"힙스터 성지, 빈티지숍과 독립 서점가 탐방",               order:14 },
+      { id:15, name:"엠파이어 스테이트 빌딩",category:"관광지",lat:40.7484, lng:-73.9967,date:"07.19",time:"19:00", memo:"102층 전망대, 일몰 후 황금빛 맨해튼 야경",              order:15 },
+    ];
+
+    const CAT_COLOR = { "관광지":"#97C459", "음식점":"#F0997B", "쇼핑":"#B486FF", "숙소":"#85B7EB" };
+    const CAT_BG    = { "관광지":"#EAF3DE", "음식점":"#FAECE7", "쇼핑":"#F2E8FF", "숙소":"#E6F1FB" };
+    const CAT_TEXT  = { "관광지":"#3B6D11", "음식점":"#993C1D", "쇼핑":"#6B21A8", "숙소":"#185FA5" };
+
+    function createMarkerIcon(place, isActive) {
+      const color = CAT_COLOR[place.category] || "#888";
+      const size = isActive ? 38 : 30;
+      const el = document.createElement("div");
+      el.className = "custom-marker" + (isActive ? " active" : "");
+      el.style.cssText = `background:${color};width:${size}px;height:${size}px;font-size:${isActive?13:11}px;border-width:${isActive?3:2.5}px`;
+      el.textContent = place.order;
+      return L.divIcon({ html: el.outerHTML, className: "", iconSize: [size, size], iconAnchor: [size/2, size/2] });
+    }
+
+    function App() {
+      const mapRef     = useRef(null);
+      const leafletRef = useRef(null);
+      const markersRef = useRef({});
+      const routeRef   = useRef(null);
+      const [activeId, setActiveId]   = useState(null);
+      const [showRoute, setShowRoute] = useState(true);
+
+      useEffect(() => {
+        if (leafletRef.current) return;
+        const map = L.map("map", { center: [40.730, -73.985], zoom: 12, zoomControl: false });
+        L.control.zoom({ position: "bottomright" }).addTo(map);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 19,
+        }).addTo(map);
+        leafletRef.current = map;
+        const coords = PLACES.map(p => [p.lat, p.lng]);
+        routeRef.current = L.polyline(coords, { color: "#9333EA", weight: 2.5, dashArray: "7,5", opacity: .75 }).addTo(map);
+        PLACES.forEach(place => {
+          const marker = L.marker([place.lat, place.lng], { icon: createMarkerIcon(place, false) }).addTo(map);
+          const catColor = CAT_COLOR[place.category] || "#888";
+          const catBg = CAT_BG[place.category] || "#f0f0f0";
+          const catTxt = CAT_TEXT[place.category] || "#333";
+          marker.bindPopup(`<div class="popup-card"><span class="popup-cat" style="background:${catBg};color:${catTxt}">${place.category}</span><div class="popup-name">${place.name}</div><div class="popup-time">📅 ${place.date} · ${place.time}</div><div class="popup-memo">${place.memo}</div></div>`, { offset: [0, -6] });
+          marker.on("click", () => setActiveId(id => id === place.id ? null : place.id));
+          markersRef.current[place.id] = marker;
+        });
+        mapRef.current = map;
+      }, []);
+
+      useEffect(() => {
+        PLACES.forEach(place => {
+          const marker = markersRef.current[place.id];
+          if (!marker) return;
+          const isActive = place.id === activeId;
+          marker.setIcon(createMarkerIcon(place, isActive));
+          if (isActive) marker.openPopup(); else marker.closePopup();
+        });
+      }, [activeId]);
+
+      useEffect(() => {
+        if (!leafletRef.current || !routeRef.current) return;
+        if (showRoute) routeRef.current.addTo(leafletRef.current);
+        else routeRef.current.remove();
+      }, [showRoute]);
+
+      function handleTimelineClick(id) {
+        const newId = activeId === id ? null : id;
+        setActiveId(newId);
+        if (newId && leafletRef.current) {
+          const place = PLACES.find(p => p.id === newId);
+          if (place) leafletRef.current.setView([place.lat, place.lng], 15, { animate: true });
+        }
+      }
+
+      const days = [...new Set(PLACES.map(p => p.date))];
+      const dayLabel = { "07.15":"Day 1","07.16":"Day 2","07.17":"Day 3","07.18":"Day 4","07.19":"Day 5" };
+
+      return (
+        <div className="app">
+          <header className="header">
+            <a href="index.html" className="back-btn" title="홈으로">←</a>
+            <div className="logo">PP</div>
+            <div className="trip-info">
+              <div className="trip-title">뉴욕 여행</div>
+              <div className="trip-period">2024.07.15 – 07.19 · 2명 · 5일</div>
+            </div>
+            <span className="status-badge">완료</span>
+          </header>
+          <div className="main">
+            <div className="map-wrap">
+              <div id="map" />
+              <div className="map-controls">
+                <button className={`ctrl-btn${showRoute?" active":""}`} onClick={()=>setShowRoute(r=>!r)}>
+                  경로선 {showRoute?"ON":"OFF"}
+                </button>
+              </div>
+            </div>
+            <div className="panel">
+              <div className="stats">
+                <div className="stat-card"><div className="stat-num">15</div><div className="stat-label">방문 장소</div></div>
+                <div className="stat-card"><div className="stat-num">52km</div><div className="stat-label">이동 거리</div></div>
+                <div className="stat-card"><div className="stat-num">127</div><div className="stat-label">사진</div></div>
+              </div>
+              <div className="tl-header-row">타임라인</div>
+              <div className="timeline">
+                {days.map(day => {
+                  const group = PLACES.filter(p => p.date === day);
+                  return (
+                    <div key={day}>
+                      <div className="day-label">
+                        <span className="day-label-num">{dayLabel[day] || day}</span>
+                        <span className="day-label-date">{day}</span>
+                        <div className="day-label-line"></div>
+                      </div>
+                      {group.map((place, i) => {
+                        const color = CAT_COLOR[place.category] || "#888";
+                        const isLast = i === group.length - 1;
+                        return (
+                          <div key={place.id} className={"tl-item"+(activeId===place.id?" active":"")} onClick={()=>handleTimelineClick(place.id)}>
+                            <div className="tl-left">
+                              <div className="tl-order">{place.order}</div>
+                              <div className="tl-dot" style={{background:color}}></div>
+                              {!isLast && <div className="tl-vline"></div>}
+                            </div>
+                            <div className="tl-content">
+                              <div className="tl-name">{place.name}</div>
+                              <div className="tl-time">{place.time} · <span style={{color,fontWeight:600,fontSize:'10px'}}>{place.category}</span></div>
+                              <div className="tl-memo">{place.memo}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  </script>
+</body>
+</html>

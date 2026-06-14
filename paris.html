@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>파리 여행</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    body { background: #f4f1eb; }
+    .app { display: flex; flex-direction: column; height: 100vh; }
+    .header { background: #1C1028; padding: 12px 20px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; z-index: 1000; }
+    .logo { width: 34px; height: 34px; background: #2D1A40; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #86EDFF; letter-spacing: .5px; }
+    .trip-info { flex: 1; }
+    .trip-title { font-size: 15px; font-weight: 600; color: #F0FEFF; }
+    .trip-period { font-size: 12px; color: #86EDFF; margin-top: 1px; opacity: .85; }
+    .status-badge { font-size: 11px; padding: 4px 11px; border-radius: 20px; background: #2D1A40; color: #86EDFF; font-weight: 500; border: 1px solid rgba(134,237,255,.3); }
+    .main { display: flex; flex: 1; overflow: hidden; }
+    .map-wrap { flex: 1; position: relative; }
+    #map { width: 100%; height: 100%; }
+    .custom-marker { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: white; border: 2.5px solid white; box-shadow: 0 2px 6px rgba(0,0,0,.25); cursor: pointer; }
+    .custom-marker.active { transform: scale(1.25); box-shadow: 0 4px 12px rgba(0,0,0,.35); }
+    .leaflet-popup-content-wrapper { border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,.12); border: none; padding: 0; }
+    .leaflet-popup-content { margin: 0; }
+    .popup-card { padding: 12px 14px; min-width: 160px; }
+    .popup-cat { font-size: 10px; font-weight: 600; letter-spacing: .5px; padding: 2px 7px; border-radius: 10px; display: inline-block; margin-bottom: 5px; }
+    .popup-name { font-size: 14px; font-weight: 600; color: #1a1a1a; margin-bottom: 3px; }
+    .popup-time { font-size: 12px; color: #666; margin-bottom: 3px; }
+    .popup-memo { font-size: 11px; color: #888; }
+    .leaflet-popup-tip-container { display: none; }
+    .map-controls { position: absolute; top: 12px; left: 12px; z-index: 999; display: flex; gap: 6px; }
+    .ctrl-btn { background: white; border: none; border-radius: 7px; padding: 6px 12px; font-size: 12px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.15); color: #333; font-weight: 500; transition: background .12s; }
+    .ctrl-btn:hover { background: #f0f0f0; }
+    .ctrl-btn.active { background: #1C1028; color: #86EDFF; }
+    .panel { width: 290px; flex-shrink: 0; background: white; border-left: 1px solid #e8e4dc; display: flex; flex-direction: column; overflow: hidden; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; background: #F3E8FF; flex-shrink: 0; }
+    .stat-card { background: white; border-radius: 8px; padding: 8px 10px; text-align: center; }
+    .stat-num { font-size: 18px; font-weight: 600; color: #7C3AED; }
+    .stat-label { font-size: 10px; color: #9333EA; margin-top: 1px; }
+    .tl-header-row { padding: 12px 14px 6px; font-size: 10px; font-weight: 600; color: #888; letter-spacing: .6px; text-transform: uppercase; flex-shrink: 0; }
+    .timeline { overflow-y: auto; flex: 1; padding: 0 10px 12px; }
+    .tl-item { display: flex; gap: 10px; padding: 9px 8px; border-radius: 9px; cursor: pointer; border: 1.5px solid transparent; transition: background .12s, border-color .12s; align-items: flex-start; margin-bottom: 2px; }
+    .tl-item:hover { background: #F9F0FF; }
+    .tl-item.active { border-color: #7C3AED; background: #F3E8FF; }
+    .tl-left { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; padding-top: 2px; }
+    .tl-order { font-size: 9px; font-weight: 600; color: #aaa; min-height: 13px; text-align: center; }
+    .tl-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; margin-top: 2px; }
+    .tl-vline { width: 1.5px; flex: 1; background: #e8e4dc; min-height: 14px; margin-top: 3px; }
+    .tl-content { flex: 1; min-width: 0; }
+    .tl-name { font-size: 13px; font-weight: 600; color: #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tl-time { font-size: 11px; color: #888; margin-top: 2px; }
+    .tl-memo { font-size: 11px; color: #aaa; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .day-label { display: flex; align-items: center; gap: 8px; padding: 10px 8px 4px; margin-top: 4px; }
+    .day-label-num { font-size: 10px; font-weight: 700; color: #7C3AED; letter-spacing: .4px; }
+    .day-label-date { font-size: 10px; color: #bbb; }
+    .day-label-line { flex: 1; height: 1px; background: #e8e4dc; }
+    .back-btn { color: rgba(134,237,255,.7); text-decoration: none; font-size: 17px; padding: 4px 6px; border-radius: 6px; line-height: 1; transition: background .12s, color .12s; flex-shrink: 0; }
+    .back-btn:hover { background: rgba(134,237,255,.12); color: #86EDFF; }
+    @media (max-width: 640px) {
+      .main { flex-direction: column; }
+      .map-wrap { height: 55vh; flex: none; }
+      .panel { width: 100%; height: 45vh; flex: none; border-left: none; border-top: 1px solid #e8e4dc; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const PLACES = [
+      // Day 1
+      { id:1,  name:"에펠탑",          category:"관광지", lat:48.8584, lng:2.2945,  date:"05.10", time:"10:00", memo:"야간 점등 23시, 1층 유리바닥에서 내려다보는 센강",      order:1  },
+      { id:2,  name:"샹젤리제 거리",   category:"쇼핑",   lat:48.8698, lng:2.3078,  date:"05.10", time:"14:00", memo:"2km 대로, 루이비통 플래그십 & 피에르 에르메 마카롱",   order:2  },
+      { id:3,  name:"개선문",          category:"관광지", lat:48.8738, lng:2.2950,  date:"05.10", time:"17:30", memo:"옥상에서 보는 방사형 도로 12개, 일몰이 압권",           order:3  },
+      // Day 2
+      { id:4,  name:"루브르 박물관",   category:"관광지", lat:48.8606, lng:2.3376,  date:"05.11", time:"09:00", memo:"모나리자 생각보다 작음, 사모트라케의 니케가 진짜 감동",  order:4  },
+      { id:5,  name:"튈르리 공원",     category:"관광지", lat:48.8638, lng:2.3275,  date:"05.11", time:"13:00", memo:"루브르 앞 정원, 마카롱 들고 벤치에서 한가로운 오후",    order:5  },
+      { id:6,  name:"팔레 루아얄",     category:"관광지", lat:48.8638, lng:2.3369,  date:"05.11", time:"15:00", memo:"숨겨진 아케이드 갤러리, 뷔렌 기둥 인증샷 명소",         order:6  },
+      { id:7,  name:"카페 드 플로르",  category:"음식점", lat:48.8540, lng:2.3332,  date:"05.11", time:"18:00", memo:"사르트르 단골 카페, 크루아상과 카페오레로 오후 감성",    order:7  },
+      // Day 3
+      { id:8,  name:"몽마르트르 언덕", category:"관광지", lat:48.8867, lng:2.3431,  date:"05.12", time:"10:00", memo:"고흐와 피카소가 살던 언덕, 화가들의 테르트르 광장",      order:8  },
+      { id:9,  name:"사크레쾨르 성당", category:"관광지", lat:48.8867, lng:2.3431,  date:"05.12", time:"11:30", memo:"파리 전경 360도 뷰, 계단에서 버스킹 들으며 쉬기",       order:9  },
+      { id:10, name:"오르세 미술관",   category:"관광지", lat:48.8600, lng:2.3266,  date:"05.12", time:"15:00", memo:"인상주의 성지, 모네 수련과 반 고흐 별이 빛나는 밤",     order:10 },
+      // Day 4
+      { id:11, name:"마레 지구",       category:"쇼핑",   lat:48.8550, lng:2.3577,  date:"05.13", time:"11:00", memo:"유대인 지구의 팔라펠, 편집숍과 갤러리 밀집 구역",       order:11 },
+      { id:12, name:"센강 유람선",     category:"관광지", lat:48.8566, lng:2.3522,  date:"05.13", time:"15:00", memo:"바토 무슈 1시간, 노트르담·루브르 다리마다 다른 파리",   order:12 },
+    ];
+
+    const CAT_COLOR = { "관광지":"#97C459", "음식점":"#F0997B", "쇼핑":"#B486FF", "숙소":"#85B7EB" };
+    const CAT_BG    = { "관광지":"#EAF3DE", "음식점":"#FAECE7", "쇼핑":"#F2E8FF", "숙소":"#E6F1FB" };
+    const CAT_TEXT  = { "관광지":"#3B6D11", "음식점":"#993C1D", "쇼핑":"#6B21A8", "숙소":"#185FA5" };
+
+    function createMarkerIcon(place, isActive) {
+      const color = CAT_COLOR[place.category] || "#888";
+      const size = isActive ? 38 : 30;
+      const el = document.createElement("div");
+      el.className = "custom-marker" + (isActive ? " active" : "");
+      el.style.cssText = `background:${color};width:${size}px;height:${size}px;font-size:${isActive?13:11}px;border-width:${isActive?3:2.5}px`;
+      el.textContent = place.order;
+      return L.divIcon({ html: el.outerHTML, className: "", iconSize: [size, size], iconAnchor: [size/2, size/2] });
+    }
+
+    function App() {
+      const leafletRef = useRef(null);
+      const markersRef = useRef({});
+      const routeRef   = useRef(null);
+      const [activeId, setActiveId]   = useState(null);
+      const [showRoute, setShowRoute] = useState(true);
+
+      useEffect(() => {
+        if (leafletRef.current) return;
+        const map = L.map("map", { center: [48.858, 2.330], zoom: 13, zoomControl: false });
+        L.control.zoom({ position: "bottomright" }).addTo(map);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 19,
+        }).addTo(map);
+        leafletRef.current = map;
+        routeRef.current = L.polyline(PLACES.map(p=>[p.lat,p.lng]), { color:"#7C3AED", weight:2.5, dashArray:"7,5", opacity:.75 }).addTo(map);
+        PLACES.forEach(place => {
+          const marker = L.marker([place.lat, place.lng], { icon: createMarkerIcon(place, false) }).addTo(map);
+          const catBg = CAT_BG[place.category]||"#f0f0f0", catTxt = CAT_TEXT[place.category]||"#333";
+          marker.bindPopup(`<div class="popup-card"><span class="popup-cat" style="background:${catBg};color:${catTxt}">${place.category}</span><div class="popup-name">${place.name}</div><div class="popup-time">📅 ${place.date} · ${place.time}</div><div class="popup-memo">${place.memo}</div></div>`,{offset:[0,-6]});
+          marker.on("click", ()=>setActiveId(id=>id===place.id?null:place.id));
+          markersRef.current[place.id] = marker;
+        });
+      }, []);
+
+      useEffect(() => {
+        PLACES.forEach(place => {
+          const marker = markersRef.current[place.id];
+          if (!marker) return;
+          const isActive = place.id === activeId;
+          marker.setIcon(createMarkerIcon(place, isActive));
+          if (isActive) marker.openPopup(); else marker.closePopup();
+        });
+      }, [activeId]);
+
+      useEffect(() => {
+        if (!leafletRef.current||!routeRef.current) return;
+        if (showRoute) routeRef.current.addTo(leafletRef.current);
+        else routeRef.current.remove();
+      }, [showRoute]);
+
+      function handleTimelineClick(id) {
+        const newId = activeId===id?null:id;
+        setActiveId(newId);
+        if (newId&&leafletRef.current) {
+          const place = PLACES.find(p=>p.id===newId);
+          if (place) leafletRef.current.setView([place.lat,place.lng],15,{animate:true});
+        }
+      }
+
+      const days = [...new Set(PLACES.map(p=>p.date))];
+      const dayLabel = {"05.10":"Day 1","05.11":"Day 2","05.12":"Day 3","05.13":"Day 4"};
+
+      return (
+        <div className="app">
+          <header className="header">
+            <a href="index.html" className="back-btn" title="홈으로">←</a>
+            <div className="logo">PP</div>
+            <div className="trip-info">
+              <div className="trip-title">파리 여행</div>
+              <div className="trip-period">2025.05.10 – 05.13 · 2명 · 4일</div>
+            </div>
+            <span className="status-badge">완료</span>
+          </header>
+          <div className="main">
+            <div className="map-wrap">
+              <div id="map"/>
+              <div className="map-controls">
+                <button className={`ctrl-btn${showRoute?" active":""}`} onClick={()=>setShowRoute(r=>!r)}>경로선 {showRoute?"ON":"OFF"}</button>
+              </div>
+            </div>
+            <div className="panel">
+              <div className="stats">
+                <div className="stat-card"><div className="stat-num">12</div><div className="stat-label">방문 장소</div></div>
+                <div className="stat-card"><div className="stat-num">38km</div><div className="stat-label">이동 거리</div></div>
+                <div className="stat-card"><div className="stat-num">94</div><div className="stat-label">사진</div></div>
+              </div>
+              <div className="tl-header-row">타임라인</div>
+              <div className="timeline">
+                {days.map(day => {
+                  const group = PLACES.filter(p=>p.date===day);
+                  return (
+                    <div key={day}>
+                      <div className="day-label">
+                        <span className="day-label-num">{dayLabel[day]||day}</span>
+                        <span className="day-label-date">{day}</span>
+                        <div className="day-label-line"/>
+                      </div>
+                      {group.map((place,i)=>{
+                        const color = CAT_COLOR[place.category]||"#888";
+                        return (
+                          <div key={place.id} className={"tl-item"+(activeId===place.id?" active":"")} onClick={()=>handleTimelineClick(place.id)}>
+                            <div className="tl-left">
+                              <div className="tl-order">{place.order}</div>
+                              <div className="tl-dot" style={{background:color}}/>
+                              {i<group.length-1&&<div className="tl-vline"/>}
+                            </div>
+                            <div className="tl-content">
+                              <div className="tl-name">{place.name}</div>
+                              <div className="tl-time">{place.time} · <span style={{color,fontWeight:600,fontSize:'10px'}}>{place.category}</span></div>
+                              <div className="tl-memo">{place.memo}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  </script>
+</body>
+</html>
