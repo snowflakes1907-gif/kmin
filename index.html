@@ -51,6 +51,33 @@
     .card-prefs{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
     .pref-tag{font-size:10px;padding:3px 8px;border-radius:20px;border:1px solid;opacity:.8;letter-spacing:-.2px;white-space:nowrap}
     .card-upcoming{font-size:11px;color:rgba(134,237,255,.4);border:1px solid rgba(134,237,255,.12);padding:5px 12px;border-radius:8px;display:inline-block}
+    .card-save-btn{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:10px;width:100%;padding:7px 0;border-radius:8px;border:1px solid rgba(134,237,255,.18);background:transparent;color:rgba(134,237,255,.5);font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s}
+    .card-save-btn:hover{background:rgba(134,237,255,.07);border-color:rgba(134,237,255,.35);color:#86EDFF}
+    .card-save-btn.saved{background:rgba(134,237,255,.12);border-color:rgba(134,237,255,.45);color:#86EDFF}
+
+    .save-toggle{position:fixed;top:13px;right:24px;z-index:101;display:flex;align-items:center;gap:5px;padding:5px 13px;border-radius:20px;border:1px solid rgba(134,237,255,.18);background:rgba(4,14,24,.8);color:rgba(134,237,255,.5);font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s;pointer-events:auto;backdrop-filter:blur(6px)}
+    .save-toggle:hover{border-color:rgba(134,237,255,.4);color:#86EDFF;background:rgba(134,237,255,.08)}
+    .save-toggle .sc{background:rgba(134,237,255,.18);color:#86EDFF;font-weight:700;font-size:10px;border-radius:10px;padding:1px 6px;min-width:18px;text-align:center}
+
+    .saved-panel{position:fixed;top:0;right:0;bottom:0;z-index:300;width:260px;background:rgba(4,14,24,.98);border-left:1px solid rgba(134,237,255,.1);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s ease;pointer-events:auto;backdrop-filter:blur(12px)}
+    .saved-panel.open{transform:translateX(0)}
+    .saved-panel-hd{display:flex;align-items:center;justify-content:space-between;padding:18px 18px 14px;border-bottom:1px solid rgba(134,237,255,.08);flex-shrink:0}
+    .saved-panel-title{font-size:13px;font-weight:600;color:#F0FEFF;letter-spacing:-.2px}
+    .saved-panel-close{background:none;border:none;color:rgba(134,237,255,.35);font-size:20px;cursor:pointer;line-height:1;padding:0 2px}
+    .saved-panel-close:hover{color:#86EDFF}
+    .saved-list{flex:1;overflow-y:auto;padding:10px}
+    .saved-empty{text-align:center;padding:40px 16px;color:rgba(134,237,255,.22);font-size:12px;line-height:2}
+    .saved-item{padding:13px;border-radius:10px;border:1px solid rgba(134,237,255,.08);margin-bottom:8px;transition:background .12s,border-color .12s}
+    .saved-item:hover{background:rgba(134,237,255,.04);border-color:rgba(134,237,255,.18)}
+    .saved-item-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px}
+    .saved-item-name{font-size:13px;font-weight:600;color:#F0FEFF;letter-spacing:-.3px}
+    .saved-item-rm{background:none;border:none;color:rgba(134,237,255,.2);font-size:15px;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0}
+    .saved-item-rm:hover{color:rgba(255,90,90,.55)}
+    .saved-item-meta{font-size:10px;color:rgba(134,237,255,.38);margin-bottom:8px}
+    .saved-item-prefs{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:9px}
+    .saved-item-tag{font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid;opacity:.75}
+    .saved-item-link{display:inline-flex;align-items:center;font-size:11px;text-decoration:none;padding:4px 10px;border-radius:6px;border:1px solid rgba(134,237,255,.2);color:#86EDFF;transition:background .12s}
+    .saved-item-link:hover{background:rgba(134,237,255,.08)}
 
     .hint{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(134,237,255,.22);letter-spacing:.5px;pointer-events:none;z-index:50;transition:opacity .8s;white-space:nowrap}
     .hint.fade{opacity:0}
@@ -110,6 +137,17 @@
     <div class="card-nums" id="c-nums"></div>
     <div class="card-prefs" id="c-prefs"></div>
     <div id="c-action"></div>
+    <button class="card-save-btn" id="card-save-btn">🔖 저장하기</button>
+  </div>
+
+  <button class="save-toggle" id="save-toggle">🔖 저장한 여행 <span class="sc" id="save-count">0</span></button>
+
+  <div class="saved-panel" id="saved-panel">
+    <div class="saved-panel-hd">
+      <span class="saved-panel-title">저장한 여행</span>
+      <button class="saved-panel-close" id="saved-panel-close">×</button>
+    </div>
+    <div class="saved-list" id="saved-list"></div>
   </div>
 
   <div class="hint" id="hint">드래그하거나 스크롤하여 다른 여행자의 기록을 탐험하세요</div>
@@ -382,6 +420,7 @@
     }
     function doHide(){card.classList.remove('visible');card.classList.add('hidden')}
     function showCard(trip,con){
+      currentCardTrip=trip; currentCardCon=con; updateSaveBtn();
       const sx=trip.x*zoom+tx,sy=trip.y*zoom+ty;
       const uDiv=document.getElementById('c-user');
       if(con.isMe){uDiv.style.display='none'}
@@ -579,6 +618,69 @@
 
     // hide drag tip after first drag
     setTimeout(()=>document.getElementById('drag-tip').style.opacity='0',8000);
+
+    /* ── SAVED TRIPS ── */
+    let savedTrips=JSON.parse(localStorage.getItem('kmin_saved')||'[]');
+    let currentCardTrip=null,currentCardCon=null;
+
+    function isSaved(tripId,conId){return savedTrips.some(s=>s.tripId===tripId&&s.conId===conId)}
+
+    function updateSaveBtn(){
+      const btn=document.getElementById('card-save-btn');
+      if(!btn||!currentCardTrip)return;
+      const saved=isSaved(currentCardTrip.id,currentCardCon.id);
+      btn.innerHTML=saved?'🔖 저장됨':'🔖 저장하기';
+      btn.classList.toggle('saved',saved);
+    }
+
+    function updateSaveCount(){
+      document.getElementById('save-count').textContent=savedTrips.length;
+    }
+
+    function renderSavedList(){
+      const list=document.getElementById('saved-list');
+      if(savedTrips.length===0){
+        list.innerHTML='<div class="saved-empty">아직 저장한 여행이 없어요<br>별을 클릭해서 마음에 드는<br>여행을 저장해보세요 🔖</div>';
+        return;
+      }
+      list.innerHTML=savedTrips.map((s,i)=>`
+        <div class="saved-item">
+          <div class="saved-item-top">
+            <div class="saved-item-name">${s.name}</div>
+            <button class="saved-item-rm" data-idx="${i}" title="삭제">×</button>
+          </div>
+          <div class="saved-item-meta">${s.country} · ${s.year} · <span style="color:${s.conColor}">${s.conLabel}</span></div>
+          ${s.prefs&&s.prefs.length?`<div class="saved-item-prefs">${s.prefs.map(p=>`<span class="saved-item-tag" style="color:${s.conColor};border-color:${s.conColor}40;background:${s.conColor}12">${p}</span>`).join('')}</div>`:''}
+          ${s.file?`<a href="${s.file}" class="saved-item-link">기록 보기 →</a>`:''}
+        </div>`).join('');
+      list.querySelectorAll('.saved-item-rm').forEach(btn=>{
+        btn.addEventListener('click',e=>{
+          e.stopPropagation();
+          savedTrips.splice(+btn.dataset.idx,1);
+          localStorage.setItem('kmin_saved',JSON.stringify(savedTrips));
+          updateSaveCount(); renderSavedList(); updateSaveBtn();
+        });
+      });
+    }
+
+    document.getElementById('card-save-btn').addEventListener('click',()=>{
+      if(!currentCardTrip||!currentCardCon)return;
+      const idx=savedTrips.findIndex(s=>s.tripId===currentCardTrip.id&&s.conId===currentCardCon.id);
+      if(idx>=0){savedTrips.splice(idx,1)}
+      else{savedTrips.push({tripId:currentCardTrip.id,conId:currentCardCon.id,name:currentCardTrip.name,country:currentCardTrip.country,year:currentCardTrip.year,file:currentCardTrip.file||'',prefs:currentCardTrip.prefs||[],conLabel:currentCardCon.label,conColor:currentCardCon.color})}
+      localStorage.setItem('kmin_saved',JSON.stringify(savedTrips));
+      updateSaveBtn(); updateSaveCount();
+      if(document.getElementById('saved-panel').classList.contains('open'))renderSavedList();
+    });
+
+    const savedPanel=document.getElementById('saved-panel');
+    document.getElementById('save-toggle').addEventListener('click',()=>{
+      savedPanel.classList.toggle('open');
+      if(savedPanel.classList.contains('open'))renderSavedList();
+    });
+    document.getElementById('saved-panel-close').addEventListener('click',()=>savedPanel.classList.remove('open'));
+
+    updateSaveCount();
   </script>
 </body>
 </html>
