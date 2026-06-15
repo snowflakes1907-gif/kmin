@@ -79,9 +79,9 @@
     .saved-item-link{display:inline-flex;align-items:center;font-size:11px;text-decoration:none;padding:4px 10px;border-radius:6px;border:1px solid rgba(134,237,255,.2);color:#86EDFF;transition:background .12s}
     .saved-item-link:hover{background:rgba(134,237,255,.08)}
 
-    .hint{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(134,237,255,.22);letter-spacing:.5px;pointer-events:none;z-index:50;transition:opacity .8s;white-space:nowrap}
+    .hint{position:fixed;bottom:52px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(134,237,255,.22);letter-spacing:.5px;pointer-events:none;z-index:50;transition:opacity .8s;white-space:nowrap}
     .hint.fade{opacity:0}
-    .add-hint{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(134,237,255,.5);background:rgba(4,14,24,.85);border:1px solid rgba(134,237,255,.2);padding:6px 16px;border-radius:20px;pointer-events:none;z-index:50;opacity:0;transition:opacity .3s;white-space:nowrap}
+    .add-hint{position:fixed;bottom:52px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(134,237,255,.5);background:rgba(4,14,24,.85);border:1px solid rgba(134,237,255,.2);padding:6px 16px;border-radius:20px;pointer-events:none;z-index:50;opacity:0;transition:opacity .3s;white-space:nowrap}
     .add-hint.show{opacity:1}
 
     .zoom-ctrl{position:fixed;bottom:22px;right:22px;z-index:100;display:flex;flex-direction:column;gap:4px}
@@ -105,7 +105,16 @@
     .af-btn.cancel:hover{background:rgba(134,237,255,.06)}
     .af-btn.ok{background:rgba(134,237,255,.12);color:#86EDFF;border-color:rgba(134,237,255,.35)}
     .af-btn.ok:hover{background:rgba(134,237,255,.22)}
-    .drag-tip{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(134,237,255,.2);pointer-events:none;z-index:50;white-space:nowrap;letter-spacing:.3px}
+    .drag-tip{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(134,237,255,.2);pointer-events:none;z-index:50;white-space:nowrap;letter-spacing:.3px}
+    #universe-vignette{position:fixed;inset:0;z-index:10;pointer-events:none;background:radial-gradient(ellipse 90% 86% at 50% 50%,transparent 56%,rgba(5,10,18,.1) 72%,rgba(5,10,18,.52) 86%,#050A12 98%)}
+    .galaxy-nav{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:100;display:flex;gap:28px;align-items:flex-start;pointer-events:auto}
+    .gn-item{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;background:none;border:none;padding:3px 8px}
+    .gn-dot{width:7px;height:7px;border-radius:50%;background:rgba(134,237,255,.15);border:1.5px solid rgba(134,237,255,.22);transition:all .35s;display:block}
+    .gn-item.active .gn-dot{background:#86EDFF;box-shadow:0 0 10px rgba(134,237,255,.4);border-color:#86EDFF;width:9px;height:9px}
+    .gn-lbl{font-size:9px;color:rgba(134,237,255,.2);letter-spacing:.4px;white-space:nowrap;font-family:-apple-system,sans-serif;transition:color .3s}
+    .gn-item.active .gn-lbl{color:rgba(134,237,255,.48)}
+    .gn-item:hover .gn-dot{background:rgba(134,237,255,.4)}
+    .gn-item:hover .gn-lbl{color:rgba(134,237,255,.38)}
     .connect-done-btn{position:fixed;bottom:152px;right:22px;z-index:100;padding:7px 13px;border-radius:8px;border:1px solid rgba(134,237,255,.35);background:rgba(134,237,255,.12);color:#86EDFF;font-size:11px;cursor:pointer;font-family:inherit;display:none;white-space:nowrap;transition:all .15s}
     .connect-done-btn.show{display:flex;align-items:center;gap:5px}
     .connect-done-btn:hover{background:rgba(134,237,255,.22);border-color:rgba(134,237,255,.5)}
@@ -124,9 +133,10 @@
 
   <div id="universe-wrap">
     <div id="universe">
-      <svg id="sky" xmlns="http://www.w3.org/2000/svg" width="4000" height="2500"></svg>
+      <svg id="sky" xmlns="http://www.w3.org/2000/svg" width="13000" height="2500"></svg>
     </div>
   </div>
+  <div id="universe-vignette"></div>
 
   <div class="trip-card hidden" id="trip-card">
     <button class="card-close" id="card-close" aria-label="닫기">×</button>
@@ -155,6 +165,12 @@
 
   <div class="hint" id="hint">드래그하거나 스크롤하여 다른 여행자의 기록을 탐험하세요</div>
   <div class="add-hint" id="add-hint">빈 공간을 클릭하여 새 별을 추가하세요 · ESC로 취소</div>
+
+  <nav class="galaxy-nav" id="galaxy-nav">
+    <button class="gn-item active" data-idx="0"><span class="gn-dot"></span><span class="gn-lbl">내 별자리</span></button>
+    <button class="gn-item" data-idx="1"><span class="gn-dot"></span><span class="gn-lbl">세계 여행자</span></button>
+    <button class="gn-item" data-idx="2"><span class="gn-dot"></span><span class="gn-lbl">탐험가의 은하</span></button>
+  </nav>
   <div class="drag-tip" id="drag-tip">내 별은 드래그로 이동할 수 있어요</div>
 
   <div class="zoom-ctrl">
@@ -238,6 +254,114 @@
         ],
         connections:[[40,41],[41,42],[42,43],[43,40]],
       },
+      // ── Galaxy 1: 6th user ──
+      {id:'jin',label:'@jin',isMe:false,color:'#FDBA74',
+        trips:[
+          {id:70,name:"서울",country:"한국",year:2024,month:"3월",days:4,places:11,status:"completed",x:2420,y:780,r:5,prefs:["맛집 탐방","쇼핑","도시 감성"]},
+          {id:71,name:"부산",country:"한국",year:2024,month:"6월",days:3,places:8,status:"completed",x:2640,y:698,r:4,prefs:["자연 치유","맛집 탐방","인생샷"]},
+          {id:72,name:"오사카",country:"일본",year:2025,month:"2월",days:5,places:10,status:"completed",x:2800,y:852,r:4.5,prefs:["맛집 탐방","쇼핑","즉흥 여행"]},
+          {id:73,name:"나라",country:"일본",year:2025,month:"2월",days:2,places:5,status:"completed",x:2706,y:982,r:3.5,prefs:["감성 골목","자연 치유","인생샷"]},
+          {id:74,name:"삿포로",country:"일본",year:2026,month:"2월",days:4,places:7,status:"upcoming",x:2480,y:948,r:4,prefs:["자연 치유","완전 휴식","인생샷"]},
+        ],
+        connections:[[70,71],[71,72],[72,73],[73,74],[74,70]]},
+      // ── Galaxy 2 (center x:7000, y:1250) — compact layout ──
+      {id:'mia',label:'@mia',isMe:false,color:'#F472B6',
+        trips:[
+          {id:80,name:"하노이",country:"베트남",year:2024,month:"3월",days:5,places:9,status:"completed",x:6400,y:780,r:5,prefs:["감성 골목","맛집 탐방","즉흥 여행"]},
+          {id:81,name:"다낭",country:"베트남",year:2024,month:"8월",days:4,places:7,status:"completed",x:6578,y:678,r:4,prefs:["자연 치유","완전 휴식","인생샷"]},
+          {id:82,name:"호치민",country:"베트남",year:2025,month:"1월",days:3,places:8,status:"completed",x:6358,y:908,r:4.5,prefs:["맛집 탐방","도시 감성","즉흥 여행"]},
+          {id:83,name:"발리",country:"인도네시아",year:2025,month:"6월",days:6,places:10,status:"upcoming",x:6538,y:1008,r:4,prefs:["자연 치유","완전 휴식","인생샷"]},
+        ],
+        connections:[[80,81],[81,82],[82,83],[83,80]]},
+      {id:'leo',label:'@leo',isMe:false,color:'#FCD34D',
+        trips:[
+          {id:90,name:"프라하",country:"체코",year:2024,month:"4월",days:5,places:10,status:"completed",x:6718,y:726,r:5,prefs:["감성 골목","인생샷","맛집 탐방"]},
+          {id:91,name:"빈",country:"오스트리아",year:2024,month:"4월",days:3,places:8,status:"completed",x:6918,y:646,r:4,prefs:["도시 감성","완벽 계획","뷰맛집 숙소"]},
+          {id:92,name:"부다페스트",country:"헝가리",year:2024,month:"5월",days:4,places:9,status:"completed",x:6838,y:918,r:4.5,prefs:["감성 골목","인생샷","즉흥 여행"]},
+          {id:93,name:"두브로브니크",country:"크로아티아",year:2025,month:"6월",days:3,places:7,status:"completed",x:6638,y:978,r:3.5,prefs:["자연 치유","인생샷","뷰맛집 숙소"]},
+        ],
+        connections:[[90,91],[91,92],[92,93],[93,90]]},
+      {id:'zoe',label:'@zoe',isMe:false,color:'#A78BFA',
+        trips:[
+          {id:100,name:"시카고",country:"미국",year:2023,month:"9월",days:5,places:12,status:"completed",x:7078,y:748,r:5,prefs:["도시 감성","맛집 탐방","인생샷"]},
+          {id:101,name:"LA",country:"미국",year:2024,month:"1월",days:6,places:14,status:"completed",x:7278,y:658,r:5.5,prefs:["도시 감성","쇼핑","뷰맛집 숙소"]},
+          {id:102,name:"샌프란시스코",country:"미국",year:2024,month:"7월",days:4,places:10,status:"completed",x:7198,y:968,r:4,prefs:["도시 감성","완벽 계획","감성 골목"]},
+          {id:103,name:"밴쿠버",country:"캐나다",year:2025,month:"9월",days:5,places:9,status:"upcoming",x:7018,y:938,r:4.5,prefs:["자연 치유","인생샷","완전 휴식"]},
+        ],
+        connections:[[100,101],[101,102],[102,103],[103,100]]},
+      {id:'kai',label:'@kai',isMe:false,color:'#34D399',
+        trips:[
+          {id:110,name:"시드니",country:"호주",year:2024,month:"2월",days:8,places:13,status:"completed",x:7398,y:1098,r:5.5,prefs:["자연 치유","액티비티","인생샷"]},
+          {id:111,name:"멜버른",country:"호주",year:2024,month:"3월",days:5,places:10,status:"completed",x:7578,y:998,r:4.5,prefs:["도시 감성","맛집 탐방","감성 골목"]},
+          {id:112,name:"오클랜드",country:"뉴질랜드",year:2025,month:"1월",days:6,places:8,status:"completed",x:7638,y:1198,r:4,prefs:["자연 치유","액티비티","완전 휴식"]},
+          {id:113,name:"피지",country:"피지",year:2025,month:"11월",days:7,places:6,status:"upcoming",x:7438,y:1298,r:4.5,prefs:["완전 휴식","자연 치유","인생샷"]},
+        ],
+        connections:[[110,111],[111,112],[112,113],[113,110]]},
+      {id:'sam',label:'@sam',isMe:false,color:'#FCA5A5',
+        trips:[
+          {id:120,name:"카이로",country:"이집트",year:2024,month:"2월",days:6,places:10,status:"completed",x:6478,y:1498,r:5,prefs:["감성 골목","인생샷","완벽 계획"]},
+          {id:121,name:"마라케시",country:"모로코",year:2024,month:"9월",days:7,places:9,status:"completed",x:6678,y:1618,r:4.5,prefs:["감성 골목","즉흥 여행","인생샷"]},
+          {id:122,name:"케이프타운",country:"남아공",year:2025,month:"4월",days:8,places:11,status:"completed",x:6358,y:1678,r:5,prefs:["자연 치유","인생샷","액티비티"]},
+          {id:123,name:"나이로비",country:"케냐",year:2025,month:"10월",days:6,places:8,status:"upcoming",x:6258,y:1538,r:4,prefs:["자연 치유","액티비티","즉흥 여행"]},
+        ],
+        connections:[[120,121],[121,122],[122,123],[123,120]]},
+      {id:'ren',label:'@ren',isMe:false,color:'#7DD3FC',
+        trips:[
+          {id:130,name:"상하이",country:"중국",year:2023,month:"11월",days:5,places:11,status:"completed",x:7138,y:1538,r:5,prefs:["도시 감성","맛집 탐방","쇼핑"]},
+          {id:131,name:"베이징",country:"중국",year:2024,month:"5월",days:5,places:10,status:"completed",x:7358,y:1638,r:4.5,prefs:["감성 골목","완벽 계획","인생샷"]},
+          {id:132,name:"마카오",country:"마카오",year:2024,month:"10월",days:3,places:8,status:"completed",x:7498,y:1478,r:4,prefs:["도시 감성","맛집 탐방","뷰맛집 숙소"]},
+          {id:133,name:"청두",country:"중국",year:2025,month:"8월",days:4,places:7,status:"upcoming",x:7278,y:1448,r:4,prefs:["맛집 탐방","감성 골목","즉흥 여행"]},
+        ],
+        connections:[[130,131],[131,132],[132,133],[133,130]]},
+      // ── Galaxy 3 (center x:11000, y:1250) — compact layout ──
+      {id:'nova',label:'@nova',isMe:false,color:'#A3E635',
+        trips:[
+          {id:140,name:"리마",country:"페루",year:2024,month:"5월",days:6,places:9,status:"completed",x:10358,y:776,r:4.5,prefs:["감성 골목","맛집 탐방","인생샷"]},
+          {id:141,name:"부에노스아이레스",country:"아르헨티나",year:2024,month:"8월",days:7,places:11,status:"completed",x:10558,y:658,r:5,prefs:["도시 감성","맛집 탐방","감성 골목"]},
+          {id:142,name:"쿠스코",country:"페루",year:2025,month:"3월",days:5,places:8,status:"completed",x:10438,y:966,r:4.5,prefs:["자연 치유","인생샷","액티비티"]},
+          {id:143,name:"리우",country:"브라질",year:2025,month:"7월",days:6,places:10,status:"upcoming",x:10258,y:998,r:4,prefs:["인생샷","액티비티","즉흥 여행"]},
+        ],
+        connections:[[140,141],[141,142],[142,143],[143,140]]},
+      {id:'aria',label:'@aria',isMe:false,color:'#FB923C',
+        trips:[
+          {id:150,name:"헬싱키",country:"핀란드",year:2024,month:"1월",days:5,places:9,status:"completed",x:11158,y:726,r:4.5,prefs:["자연 치유","완전 휴식","인생샷"]},
+          {id:151,name:"탈린",country:"에스토니아",year:2024,month:"6월",days:3,places:7,status:"completed",x:11358,y:638,r:4,prefs:["감성 골목","인생샷","맛집 탐방"]},
+          {id:152,name:"리가",country:"라트비아",year:2024,month:"6월",days:3,places:6,status:"completed",x:11478,y:858,r:3.5,prefs:["감성 골목","즉흥 여행","완벽 계획"]},
+          {id:153,name:"빌뉴스",country:"리투아니아",year:2024,month:"7월",days:4,places:8,status:"completed",x:11238,y:928,r:4,prefs:["감성 골목","맛집 탐방","인생샷"]},
+        ],
+        connections:[[150,151],[151,152],[152,153],[153,150]]},
+      {id:'juno',label:'@juno',isMe:false,color:'#D946EF',
+        trips:[
+          {id:160,name:"뭄바이",country:"인도",year:2024,month:"3월",days:6,places:10,status:"completed",x:10318,y:1518,r:5,prefs:["도시 감성","맛집 탐방","즉흥 여행"]},
+          {id:161,name:"바라나시",country:"인도",year:2024,month:"4월",days:4,places:7,status:"completed",x:10518,y:1638,r:4,prefs:["감성 골목","자연 치유","인생샷"]},
+          {id:162,name:"조드푸르",country:"인도",year:2024,month:"4월",days:3,places:6,status:"completed",x:10638,y:1478,r:3.5,prefs:["감성 골목","인생샷","완벽 계획"]},
+          {id:163,name:"카트만두",country:"네팔",year:2025,month:"10월",days:7,places:9,status:"upcoming",x:10178,y:1608,r:4.5,prefs:["자연 치유","액티비티","인생샷"]},
+        ],
+        connections:[[160,161],[161,162],[162,163],[163,160]]},
+      {id:'pike',label:'@pike',isMe:false,color:'#22D3EE',
+        trips:[
+          {id:170,name:"이스탄불",country:"튀르키예",year:2023,month:"10월",days:6,places:12,status:"completed",x:11438,y:1538,r:5.5,prefs:["감성 골목","맛집 탐방","인생샷"]},
+          {id:171,name:"카파도키아",country:"튀르키예",year:2023,month:"10월",days:3,places:6,status:"completed",x:11638,y:1438,r:4,prefs:["자연 치유","인생샷","뷰맛집 숙소"]},
+          {id:172,name:"트빌리시",country:"조지아",year:2024,month:"5월",days:5,places:9,status:"completed",x:11738,y:1638,r:4.5,prefs:["감성 골목","맛집 탐방","즉흥 여행"]},
+          {id:173,name:"알마티",country:"카자흐스탄",year:2025,month:"8월",days:4,places:7,status:"upcoming",x:11558,y:1698,r:4,prefs:["자연 치유","액티비티","즉흥 여행"]},
+        ],
+        connections:[[170,171],[171,172],[172,173],[173,170]]},
+      {id:'max',label:'@max',isMe:false,color:'#818CF8',
+        trips:[
+          {id:180,name:"바르셀로나",country:"스페인",year:2024,month:"7월",days:7,places:13,status:"completed",x:10678,y:1098,r:5.5,prefs:["도시 감성","맛집 탐방","인생샷"]},
+          {id:181,name:"마드리드",country:"스페인",year:2024,month:"7월",days:4,places:10,status:"completed",x:10878,y:988,r:4.5,prefs:["도시 감성","맛집 탐방","완벽 계획"]},
+          {id:182,name:"세비야",country:"스페인",year:2024,month:"8월",days:3,places:7,status:"completed",x:10998,y:1178,r:4,prefs:["감성 골목","인생샷","즉흥 여행"]},
+          {id:183,name:"리스본",country:"포르투갈",year:2025,month:"4월",days:5,places:9,status:"upcoming",x:10778,y:1238,r:4.5,prefs:["감성 골목","맛집 탐방","뷰맛집 숙소"]},
+        ],
+        connections:[[180,181],[181,182],[182,183],[183,180]]},
+      {id:'luna',label:'@luna',isMe:false,color:'#E879F9',
+        trips:[
+          {id:190,name:"교토",country:"일본",year:2024,month:"11월",days:6,places:11,status:"completed",x:11198,y:1058,r:5,prefs:["감성 골목","자연 치유","완벽 계획"]},
+          {id:191,name:"나가사키",country:"일본",year:2024,month:"11월",days:3,places:7,status:"completed",x:11418,y:948,r:4,prefs:["감성 골목","인생샷","맛집 탐방"]},
+          {id:192,name:"가나자와",country:"일본",year:2025,month:"3월",days:4,places:8,status:"completed",x:11538,y:1158,r:4.5,prefs:["감성 골목","맛집 탐방","완벽 계획"]},
+          {id:193,name:"히로시마",country:"일본",year:2025,month:"9월",days:3,places:6,status:"upcoming",x:11298,y:1238,r:4,prefs:["감성 골목","인생샷","자연 치유"]},
+        ],
+        connections:[[190,191],[191,192],[192,193],[193,190]]},
     ];
 
     /* ── HELPERS ── */
@@ -252,19 +376,55 @@
     const mwF=make('filter',{id:'mw',x:'-15%',y:'-15%',width:'130%',height:'130%'},defs);make('feGaussianBlur',{stdDeviation:'32'},mwF);
     const gxF=make('filter',{id:'gx',x:'-50%',y:'-50%',width:'200%',height:'200%'},defs);make('feGaussianBlur',{stdDeviation:'7',result:'b'},gxF);const gxM=make('feMerge',{},gxF);make('feMergeNode',{in:'b'},gxM);make('feMergeNode',{in:'SourceGraphic'},gxM);
     const mkNeb=(id,color,op)=>{const g=make('radialGradient',{id,cx:'50%',cy:'50%',r:'50%'},defs);make('stop',{offset:'0%','stop-color':color,'stop-opacity':op},g);make('stop',{offset:'100%','stop-color':color,'stop-opacity':'0'},g)};
-    mkNeb('n-cyan','#86EDFF','.07');mkNeb('n-blue','#4B7BEC','.06');mkNeb('n-amber','#FF9B42','.055');mkNeb('n-pink','#FF6BAC','.055');mkNeb('n-purple','#9B6BFF','.06');mkNeb('n-teal','#4DD0C4','.05');
+    mkNeb('n-cyan','#86EDFF','.07');mkNeb('n-blue','#4B7BEC','.06');mkNeb('n-amber','#FF9B42','.055');mkNeb('n-pink','#FF6BAC','.055');mkNeb('n-purple','#9B6BFF','.06');mkNeb('n-teal','#4DD0C4','.05');mkNeb('n-green','#34D399','.055');mkNeb('n-violet','#D946EF','.05');
 
     /* ── NEBULAS ── */
+    // Galaxy 1 nebulas
     [{cx:2040,cy:1265,rx:720,ry:600,f:'n-cyan'},{cx:700,cy:600,rx:520,ry:420,f:'n-blue'},{cx:3300,cy:510,rx:520,ry:420,f:'n-amber'},{cx:750,cy:1910,rx:520,ry:420,f:'n-pink'},{cx:3210,cy:2010,rx:520,ry:420,f:'n-purple'},{cx:2850,cy:840,rx:380,ry:300,f:'n-teal'},{cx:1150,cy:1820,rx:340,ry:280,f:'n-blue',op:'.6'}]
+    .forEach(({cx,cy,rx,ry,f,op})=>make('ellipse',{cx,cy,rx,ry,fill:`url(#${f})`,opacity:op||'1'},sky));
+    // Galaxy 2 nebulas (center ~7000)
+    [{cx:7000,cy:1250,rx:740,ry:610,f:'n-amber'},{cx:5700,cy:900,rx:460,ry:360,f:'n-pink'},{cx:8300,cy:1000,rx:400,ry:320,f:'n-green'},{cx:6300,cy:1700,rx:380,ry:300,f:'n-amber',op:'.7'},{cx:7800,cy:1600,rx:420,ry:340,f:'n-blue'},{cx:8100,cy:500,rx:300,ry:240,f:'n-teal',op:'.8'}]
+    .forEach(({cx,cy,rx,ry,f,op})=>make('ellipse',{cx,cy,rx,ry,fill:`url(#${f})`,opacity:op||'1'},sky));
+    // Void between G1 and G2 (sparse)
+    [{cx:4500,cy:1200,rx:220,ry:180,f:'n-blue',op:'.35'},{cx:4900,cy:800,rx:180,ry:140,f:'n-purple',op:'.3'}]
+    .forEach(({cx,cy,rx,ry,f,op})=>make('ellipse',{cx,cy,rx,ry,fill:`url(#${f})`,opacity:op||'1'},sky));
+    // Galaxy 3 nebulas (center ~11000)
+    [{cx:11000,cy:1250,rx:720,ry:590,f:'n-purple'},{cx:10300,cy:900,rx:420,ry:340,f:'n-violet'},{cx:11700,cy:1100,rx:380,ry:300,f:'n-cyan',op:'.8'},{cx:10700,cy:1700,rx:360,ry:280,f:'n-pink'},{cx:12100,cy:1700,rx:300,ry:240,f:'n-teal',op:'.7'},{cx:11500,cy:500,rx:280,ry:220,f:'n-purple',op:'.8'}]
+    .forEach(({cx,cy,rx,ry,f,op})=>make('ellipse',{cx,cy,rx,ry,fill:`url(#${f})`,opacity:op||'1'},sky));
+    // Void between G2 and G3
+    [{cx:9100,cy:1100,rx:200,ry:160,f:'n-teal',op:'.3'},{cx:9500,cy:1600,rx:160,ry:130,f:'n-amber',op:'.3'}]
     .forEach(({cx,cy,rx,ry,f,op})=>make('ellipse',{cx,cy,rx,ry,fill:`url(#${f})`,opacity:op||'1'},sky));
 
     /* ── BACKGROUND STARS ── */
     const bgG=make('g',{},sky);
-    for(let i=0;i<180;i++){
-      const c=make('circle',{cx:rnd(0,4000).toFixed(1),cy:rnd(0,2500).toFixed(1),r:rnd(.2,1.4).toFixed(2),fill:'white'},bgG);
+    // Galaxy 1
+    for(let i=0;i<200;i++){
+      const c=make('circle',{cx:rnd(0,4200).toFixed(1),cy:rnd(0,2500).toFixed(1),r:rnd(.2,1.4).toFixed(2),fill:'white'},bgG);
       const op=rnd(.1,.48).toFixed(2);c.style.setProperty('--op',op);c.style.opacity=op;
       c.style.animation=`twinkle ${rnd(1.6,6.5).toFixed(1)}s ${rnd(0,9).toFixed(1)}s ease-in-out infinite`;
     }
+    // Voids (sparse)
+    for(let i=0;i<30;i++){
+      const vx=i<15?rnd(4100,5000):rnd(8800,9800);
+      const c=make('circle',{cx:vx.toFixed(1),cy:rnd(0,2500).toFixed(1),r:rnd(.1,.7).toFixed(2),fill:'white'},bgG);
+      const op=rnd(.05,.2).toFixed(2);c.style.setProperty('--op',op);c.style.opacity=op;
+      c.style.animation=`twinkle ${rnd(2,7).toFixed(1)}s ${rnd(0,9).toFixed(1)}s ease-in-out infinite`;
+    }
+    // Galaxy 2
+    for(let i=0;i<220;i++){
+      const c=make('circle',{cx:rnd(4900,9200).toFixed(1),cy:rnd(0,2500).toFixed(1),r:rnd(.2,1.4).toFixed(2),fill:'white'},bgG);
+      const op=rnd(.1,.48).toFixed(2);c.style.setProperty('--op',op);c.style.opacity=op;
+      c.style.animation=`twinkle ${rnd(1.6,6.5).toFixed(1)}s ${rnd(0,9).toFixed(1)}s ease-in-out infinite`;
+    }
+    // Galaxy 3
+    for(let i=0;i<220;i++){
+      const c=make('circle',{cx:rnd(9700,13000).toFixed(1),cy:rnd(0,2500).toFixed(1),r:rnd(.2,1.4).toFixed(2),fill:'white'},bgG);
+      const op=rnd(.1,.48).toFixed(2);c.style.setProperty('--op',op);c.style.opacity=op;
+      c.style.animation=`twinkle ${rnd(1.6,6.5).toFixed(1)}s ${rnd(0,9).toFixed(1)}s ease-in-out infinite`;
+    }
+    // Galaxy labels (very faint)
+    [{x:2000,y:2240,t:'GALAXY  I',fill:'rgba(134,237,255,.025)'},{x:7000,y:2240,t:'GALAXY  II',fill:'rgba(255,155,66,.025)'},{x:11000,y:2240,t:'GALAXY  III',fill:'rgba(155,107,255,.025)'}]
+    .forEach(({x,y,t,fill})=>{const tx2=make('text',{x,y,'text-anchor':'middle','font-size':'100','font-weight':'700','letter-spacing':'8','font-family':'-apple-system,sans-serif',fill},sky);tx2.textContent=t});
 
     /* ── MILKY WAY ── */
     const mwG=make('g',{},sky);
@@ -488,7 +648,23 @@
     let isDragging=false,lastX,lastY,hasDragged=false;
     let draggingStar=null,starDragOX=0,starDragOY=0;
 
-    function applyTransform(){UNI.style.transform=`translate(${tx}px,${ty}px) scale(${zoom})`}
+    const GALAXIES=[{cx:2000,cy:1250,zoom:0.85,name:'내 별자리'},{cx:7000,cy:1250,zoom:0.42,name:'세계 여행자'},{cx:11000,cy:1250,zoom:0.42,name:'탐험가의 은하'}];
+    let animFrame=null;
+    function goToGalaxy(idx){
+      const g=GALAXIES[idx];
+      const tZoom=g.zoom;
+      const tTx=W/2-g.cx*tZoom,tTy=H/2-g.cy*tZoom;
+      if(animFrame)cancelAnimationFrame(animFrame);
+      const sTx=tx,sTy=ty,sZoom=zoom,t0=performance.now(),dur=1500;
+      function step(now){const p=Math.min(1,(now-t0)/dur),e=p<.5?2*p*p:-1+(4-2*p)*p;tx=sTx+(tTx-sTx)*e;ty=sTy+(tTy-sTy)*e;zoom=sZoom+(tZoom-sZoom)*e;applyTransform();if(p<1)animFrame=requestAnimationFrame(step);else animFrame=null}
+      animFrame=requestAnimationFrame(step);
+    }
+    function updateGalaxyNav(){
+      const cx=(W/2-tx)/zoom;
+      const ni=GALAXIES.reduce((bi,g,i)=>Math.abs(cx-g.cx)<Math.abs(cx-GALAXIES[bi].cx)?i:bi,0);
+      document.querySelectorAll('.gn-item').forEach((d,i)=>d.classList.toggle('active',i===ni));
+    }
+    function applyTransform(){UNI.style.transform=`translate(${tx}px,${ty}px) scale(${zoom})`;updateGalaxyNav()}
     applyTransform();
 
     const wrap=document.getElementById('universe-wrap');
@@ -549,7 +725,7 @@
 
     /* ── ADD STAR MODE ── */
     let addMode=false,pendingAddPos=null;
-    let nextId=100;
+    let nextId=600;
 
     document.getElementById('add-btn').addEventListener('click',()=>{
       if(addMode==='connect'){doneConnect();return;}
@@ -695,6 +871,7 @@
     }
 
     document.getElementById('connect-done').addEventListener('click',doneConnect);
+    document.querySelectorAll('.gn-item').forEach(btn=>btn.addEventListener('click',()=>goToGalaxy(+btn.dataset.idx)));
 
     // hide drag tip after first drag
     setTimeout(()=>document.getElementById('drag-tip').style.opacity='0',8000);
