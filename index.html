@@ -106,6 +106,9 @@
     .af-btn.ok{background:rgba(134,237,255,.12);color:#86EDFF;border-color:rgba(134,237,255,.35)}
     .af-btn.ok:hover{background:rgba(134,237,255,.22)}
     .drag-tip{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(134,237,255,.2);pointer-events:none;z-index:50;white-space:nowrap;letter-spacing:.3px}
+    .connect-done-btn{position:fixed;bottom:152px;right:22px;z-index:100;padding:7px 13px;border-radius:8px;border:1px solid rgba(134,237,255,.35);background:rgba(134,237,255,.12);color:#86EDFF;font-size:11px;cursor:pointer;font-family:inherit;display:none;white-space:nowrap;transition:all .15s}
+    .connect-done-btn.show{display:flex;align-items:center;gap:5px}
+    .connect-done-btn:hover{background:rgba(134,237,255,.22);border-color:rgba(134,237,255,.5)}
   </style>
 </head>
 <body>
@@ -159,6 +162,7 @@
     <button class="z-btn" id="zout">−</button>
   </div>
   <button class="add-btn" id="add-btn" title="새 별 추가">+</button>
+  <button class="connect-done-btn" id="connect-done">✓ 연결 완료</button>
 
   <div class="add-form hidden" id="add-form">
     <div class="add-form-title">새 여행 추가</div>
@@ -313,6 +317,7 @@
 
     // myLineG: separate layer for my lines (needed for add-star line rendering)
     const myLineG=make('g',{},sky);
+    const previewLine=make('line',{x1:0,y1:0,x2:0,y2:0,stroke:'#86EDFF','stroke-opacity':'0','stroke-width':'1.2','stroke-dasharray':'4,7'},myLineG);
 
     for(const con of CONSTELLATIONS){
       const lineG=con.isMe?myLineG:make('g',{},sky);
@@ -363,7 +368,14 @@
         coreMap[trip.id]={core,baseR:trip.r,con,trip,circles:posCircles,label,group:g};
 
         g.addEventListener('mouseenter',()=>{
-          if(isDragging||draggingStar!==null||addMode)return;
+          if(isDragging||draggingStar!==null||addMode==='place')return;
+          if(addMode==='connect'){
+            if(!con.isMe||trip.id===connectingStar)return;
+            const srcT=ppCon.trips.find(t=>t.id===connectingStar);
+            if(srcT){previewLine.setAttribute('x1',srcT.x);previewLine.setAttribute('y1',srcT.y);previewLine.setAttribute('x2',trip.x);previewLine.setAttribute('y2',trip.y)}
+            core.setAttribute('r',trip.r*1.35);core.setAttribute('filter','url(#glow-hot)');
+            return;
+          }
           clearTimeout(hideTimer);
           showCard(trip,con);
           setLines(trip.id,con,true);
@@ -371,16 +383,26 @@
           core.setAttribute('filter','url(#glow-hot)');
         });
         g.addEventListener('mouseleave',()=>{
+          if(addMode==='connect'){core.setAttribute('r',trip.r);core.setAttribute('filter','url(#glow)');return;}
           hideTimer=setTimeout(()=>{
             doHide();setLines(trip.id,con,false);
             core.setAttribute('r',trip.r);
             core.setAttribute('filter','url(#glow)');
           },90);
         });
+        g.addEventListener('click',e=>{
+          if(addMode!=='connect'||!con.isMe||trip.id===connectingStar)return;
+          e.stopPropagation();toggleConnectLine(trip.id);
+        });
+        g.addEventListener('mousedown',e=>{if(addMode==='connect')e.stopPropagation()});
 
         /* Touch tap — show card */
         g.addEventListener('touchend',e=>{
-          if(touchMoved||addMode||draggingStar!==null)return;
+          if(touchMoved||addMode==='place'||draggingStar!==null)return;
+          if(addMode==='connect'){
+            if(con.isMe&&trip.id!==connectingStar){e.preventDefault();toggleConnectLine(trip.id);}
+            return;
+          }
           e.preventDefault();
           clearTimeout(hideTimer);
           showCard(trip,con);
@@ -392,7 +414,8 @@
         /* Drag — my stars only */
         if(con.isMe){
           g.addEventListener('mousedown',e=>{
-            if(addMode)return;
+            if(addMode==='connect'){e.stopPropagation();return;}
+            if(addMode==='place')return;
             e.stopPropagation();e.preventDefault();
             draggingStar=trip.id;
             const ux=(e.clientX-tx)/zoom,uy=(e.clientY-ty)/zoom;
@@ -472,7 +495,7 @@
     wrap.addEventListener('mousedown',e=>{
       // Ignore clicks that originate from fixed UI controls
       if(e.target.closest('#add-btn,.z-btn,#add-form,.trip-card')) return;
-      if(addMode){
+      if(addMode==='place'){
         const ux=(e.clientX-tx)/zoom,uy=(e.clientY-ty)/zoom;
         pendingAddPos={x:ux,y:uy};
         document.getElementById('add-form').classList.remove('hidden');
@@ -480,12 +503,17 @@
         return;
       }
       isDragging=true;lastX=e.clientX;lastY=e.clientY;
-      document.body.classList.add('dragging');doHide();
+      document.body.classList.add('dragging');
+      if(addMode!=='connect')doHide();
     });
     window.addEventListener('mousemove',e=>{
       if(draggingStar!==null){
         const ux=(e.clientX-tx)/zoom,uy=(e.clientY-ty)/zoom;
         moveTripStar(draggingStar,ux-starDragOX,uy-starDragOY);return;
+      }
+      if(addMode==='connect'&&connectingStar!==null){
+        const srcT=ppCon.trips.find(t=>t.id===connectingStar);
+        if(srcT){const ux=(e.clientX-tx)/zoom,uy=(e.clientY-ty)/zoom;previewLine.setAttribute('x1',srcT.x);previewLine.setAttribute('y1',srcT.y);previewLine.setAttribute('x2',ux);previewLine.setAttribute('y2',uy)}
       }
       if(!isDragging)return;
       tx+=e.clientX-lastX;ty+=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;
@@ -496,6 +524,7 @@
       if(draggingStar!==null){draggingStar=null;document.body.classList.remove('star-drag');return}
       isDragging=false;document.body.classList.remove('dragging');
     });
+
 
     /* Touch */
     let lastTX,lastTY,lastPinch=null;
@@ -523,11 +552,13 @@
     let nextId=100;
 
     document.getElementById('add-btn').addEventListener('click',()=>{
-      addMode=!addMode;
-      document.body.classList.toggle('add-mode',addMode);
-      document.getElementById('add-btn').classList.toggle('active',addMode);
-      document.getElementById('add-hint').classList.toggle('show',addMode);
-      document.getElementById('hint').classList.toggle('fade',addMode||hasDragged);
+      if(addMode==='connect'){doneConnect();return;}
+      const entering=addMode!=='place';
+      addMode=entering?'place':false;
+      document.body.classList.toggle('add-mode',!!addMode);
+      document.getElementById('add-btn').classList.toggle('active',!!addMode);
+      document.getElementById('add-hint').classList.toggle('show',!!addMode);
+      document.getElementById('hint').classList.toggle('fade',!!addMode||hasDragged);
       if(!addMode)document.getElementById('add-form').classList.add('hidden');
     });
 
@@ -537,6 +568,7 @@
     document.addEventListener('keydown',e=>{if(e.key==='Escape'&&addMode)cancelAdd()});
 
     function cancelAdd(){
+      if(addMode==='connect'){doneConnect();return;}
       addMode=false;pendingAddPos=null;
       document.body.classList.remove('add-mode');
       document.getElementById('add-btn').classList.remove('active');
@@ -553,8 +585,13 @@
       const year=parseInt(document.getElementById('af-year').value)||new Date().getFullYear();
       if(!pendingAddPos)return;
       const {x,y}=pendingAddPos;
-      addTripStar(x,y,name,country,year);
-      cancelAdd();
+      const newId=addTripStar(x,y,name,country,year);
+      pendingAddPos=null;
+      document.getElementById('add-form').classList.add('hidden');
+      document.getElementById('af-name').value='';
+      document.getElementById('af-country').value='';
+      document.getElementById('af-year').value='';
+      enterConnectMode(newId);
     }
 
     function addTripStar(x,y,name,country,year){
@@ -563,16 +600,10 @@
       const trip={id,name,country,year,month:'',days:0,places:0,status:'completed',x,y,r};
       ppCon.trips.push(trip);
 
-      // connect to nearest existing my-star
-      const nearest=ppCon.trips.slice(0,-1).reduce((best,t)=>{
-        const d=Math.hypot(t.x-x,t.y-y);return d<best.d?{t,d}:{best};
-      },{t:null,d:Infinity}).t;
-
       const starG=make('g',{},sky);
       const posCircles=[];
       const g=make('g',{style:'cursor:pointer'},starG);
 
-      // new star pulse
       const pr=r*3.2;
       const ring=make('circle',{cx:x,cy:y,r:pr,fill:'none',stroke:'#86EDFF','stroke-width':'.7'},g);
       ring.style.cssText=`opacity:.22;transform-box:fill-box;transform-origin:center;animation:pulse 3.2s ease-in-out infinite`;
@@ -586,15 +617,9 @@
 
       coreMap[id]={core,baseR:r,con:ppCon,trip,circles:posCircles,label,group:g};
 
-      // connect line to nearest
-      if(nearest){
-        const key=`${Math.min(id,nearest.id)}-${Math.max(id,nearest.id)}`;
-        ppCon.connections.push([id,nearest.id]);
-        lineMap[key]=make('line',{x1:x,y1:y,x2:nearest.x,y2:nearest.y,stroke:'#86EDFF','stroke-opacity':'.1','stroke-width':'.8','stroke-dasharray':'3,5'},myLineG);
-      }
-
       // drag
       g.addEventListener('mousedown',e=>{
+        if(addMode==='connect'){e.stopPropagation();return;}
         e.stopPropagation();e.preventDefault();
         draggingStar=id;
         const ux=(e.clientX-tx)/zoom,uy=(e.clientY-ty)/zoom;
@@ -602,19 +627,74 @@
         doHide();document.body.classList.add('star-drag');
       });
       g.addEventListener('mouseenter',()=>{
-        if(isDragging||draggingStar!==null)return;
+        if(isDragging||draggingStar!==null||addMode==='place')return;
+        if(addMode==='connect'){
+          if(id===connectingStar)return;
+          const srcT=ppCon.trips.find(t=>t.id===connectingStar);
+          if(srcT){previewLine.setAttribute('x1',srcT.x);previewLine.setAttribute('y1',srcT.y);previewLine.setAttribute('x2',trip.x);previewLine.setAttribute('y2',trip.y)}
+          core.setAttribute('r',r*1.35);core.setAttribute('filter','url(#glow-hot)');
+          return;
+        }
         clearTimeout(hideTimer);showCard(trip,ppCon);
         setLines(id,ppCon,true);
         core.setAttribute('r',r*1.35);core.setAttribute('filter','url(#glow-hot)');
       });
       g.addEventListener('mouseleave',()=>{
+        if(addMode==='connect'){core.setAttribute('r',r);core.setAttribute('filter','url(#glow)');return;}
         hideTimer=setTimeout(()=>{doHide();setLines(id,ppCon,false);core.setAttribute('r',r);core.setAttribute('filter','url(#glow)')},90);
       });
+      g.addEventListener('click',e=>{
+        if(addMode!=='connect'||id===connectingStar)return;
+        e.stopPropagation();toggleConnectLine(id);
+      });
 
-      // flash animation
       core.style.animation='none';
       setTimeout(()=>{core.style.animation=''},50);
+      return id;
     }
+
+    let connectingStar=null;
+
+    function enterConnectMode(newId){
+      addMode='connect';connectingStar=newId;
+      document.body.classList.remove('add-mode');
+      document.getElementById('add-btn').classList.remove('active');
+      document.getElementById('add-hint').textContent='클릭으로 별자리를 연결하세요 · 완료 버튼으로 종료';
+      document.getElementById('add-hint').classList.add('show');
+      document.getElementById('connect-done').classList.add('show');
+      previewLine.setAttribute('stroke-opacity','.35');
+      const e=coreMap[newId];
+      if(e){e.core.setAttribute('filter','url(#glow-hot)');e.core.setAttribute('r',e.baseR*1.6)}
+    }
+
+    function doneConnect(){
+      const e=coreMap[connectingStar];
+      if(e){e.core.setAttribute('filter','url(#glow)');e.core.setAttribute('r',e.baseR)}
+      addMode=false;connectingStar=null;
+      document.getElementById('add-btn').classList.remove('active');
+      document.getElementById('add-hint').classList.remove('show');
+      document.getElementById('add-hint').textContent='빈 공간을 클릭하여 새 별을 추가하세요 · ESC로 취소';
+      document.getElementById('connect-done').classList.remove('show');
+      previewLine.setAttribute('stroke-opacity','0');
+    }
+
+    function toggleConnectLine(targetId){
+      const newId=connectingStar;
+      const key=`${Math.min(newId,targetId)}-${Math.max(newId,targetId)}`;
+      const existIdx=ppCon.connections.findIndex(([a,b])=>(a===newId&&b===targetId)||(a===targetId&&b===newId));
+      if(existIdx>=0){
+        ppCon.connections.splice(existIdx,1);
+        if(lineMap[key]){lineMap[key].remove();delete lineMap[key]}
+      }else{
+        const srcT=ppCon.trips.find(t=>t.id===newId);
+        const tgtT=ppCon.trips.find(t=>t.id===targetId);
+        ppCon.connections.push([newId,targetId]);
+        lineMap[key]=make('line',{x1:srcT.x,y1:srcT.y,x2:tgtT.x,y2:tgtT.y,stroke:'#86EDFF','stroke-opacity':'.55','stroke-width':'1','stroke-dasharray':'3,5'},myLineG);
+        setTimeout(()=>lineMap[key]&&lineMap[key].setAttribute('stroke-opacity','.1'),700);
+      }
+    }
+
+    document.getElementById('connect-done').addEventListener('click',doneConnect);
 
     // hide drag tip after first drag
     setTimeout(()=>document.getElementById('drag-tip').style.opacity='0',8000);
